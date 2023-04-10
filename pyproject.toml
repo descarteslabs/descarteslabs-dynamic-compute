@@ -3,7 +3,7 @@ name = "dynamic_compute"
 version = "0.1.0"
 description = ""
 authors = ["Descartes Labs"]
-readme = "descarteslabs/README.md"
+readme = "README.md"
 packages = [
     { include = "descarteslabs" },
 ]
