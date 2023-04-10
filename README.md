@@ -37,3 +37,5 @@ We can then visualize this on the map using by calling `.visualize` on our layer
 ```python
 _ = spot_rgb.visualize("SPOT", m, scales=[[0, 256], [0, 256], [0, 256]])
 ```
+
+Only files included in `__all__` will be supported.
