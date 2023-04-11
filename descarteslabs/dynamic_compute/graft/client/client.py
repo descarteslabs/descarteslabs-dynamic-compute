@@ -79,6 +79,7 @@ import base64
 import contextlib
 import copy
 import itertools
+import json
 import pickle
 from typing import Dict
 
@@ -195,21 +196,22 @@ def compress_graft(graft: Dict) -> Dict:
     """
 
     # Create a map from the grafts' string values (other than "return") back to the key(s)
-    # where the strings occur. This is an inverse (multi) map of the graft.
-    strings = {}
+    # where the strings occur. This is an reverse (multi) map of the graft.
+    rev_graft = {}
     for key in graft:
         if key == "returns":
             continue
-        if isinstance(graft[key], str):
-            strings.setdefault(graft[key], []).append(key)
+
+        # graft[k] may not be hashable, but it's serializable.
+        rev_graft.setdefault(json.dumps(graft[key]), []).append(key)
 
     # Create a map called replacements from a key to be replaced to its replacement
     replacements = {}
-    for keys in strings.values():
-        # keys is a list of keys that all point to the same string.
+    for keys in rev_graft.values():
+        # keys is a list of keys that all point to the same value.
 
         if len(keys) < 2:
-            # There is only one key pointing to this string.
+            # There is only one key pointing to this value.
             continue
 
         # Record that we can replace all successive keys with the first
@@ -227,29 +229,31 @@ def compress_graft(graft: Dict) -> Dict:
     # Walk the graft and replace places where we *use* the key to be replaced
     for key in new_graft:
 
-        if not isinstance(new_graft[key], list):
-            # This is a value in the graft, not an operation that references values
-            continue
+        if isinstance(new_graft[key], list):
 
-        # Here op_list is something like, ['code', '73', '72', {'cache_id': '75'}]
-        op_list = new_graft[key]
+            # Here op_list is something like, ['code', '73', '72', {'cache_id': '75'}]
+            op_list = new_graft[key]
 
-        for i, item in enumerate(op_list):
-            if i == 0 or not isinstance(item, str):
-                # i == 0 corresponds to the operation identifier, e.g. "code"
-                # some entries in this list may not be strings.
-                continue
+            for i, item in enumerate(op_list):
+                if i == 0:
+                    # This is the primitive type, e.g. 'code'
+                    continue
 
-            # The following will update op_list[i] with its replacement if
-            # there is one, otherwise it will leave op_list[i] as it is
-            op_list[i] = replacements.get(op_list[i], op_list[i])
+                if isinstance(item, str):
+                    # The following will update op_list[i] with its replacement if
+                    # there is one, otherwise it will leave op_list[i] as it is
+                    op_list[i] = replacements.get(item, item)
+                elif isinstance(item, dict):
+                    # Here item is something like {'cache_id': '75'}
+                    for key1 in item:
+                        item[key1] = replacements.get(item[key1], item[key1])
 
     # Remove the keys are no longer referenced
     for key in replacements:
         _ = new_graft.pop(key)
 
-    # Return the new graft
-    return new_graft
+    # We've modified the graft, perform another pass to see if more compression is possible.
+    return compress_graft(new_graft)
 
 
 def apply_graft(function, *args, **kwargs):
