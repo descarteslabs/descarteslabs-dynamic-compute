@@ -182,18 +182,19 @@ class Mosaic(
             Masked mosaic.
         """
         return Mosaic(
-            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pa),
+            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
         )
 
-    def concat_bands(self, other: Mosaic) -> Mosaic:
+    def concat_bands(self, other: Union[Mosaic, str, List[str]]) -> Mosaic:
         """
         Create a new Mosaic that stacks bands. This call does not
         mutate `this`
 
         Parameters
         ----------
-        other: Mosaic
-            concat the bands of this mosiac with those of other
+        other: Union[Mosaic, str]
+            concat the bands of this mosiac with those of other, if other is a Mosaic.
+            otherwise assume other is a list of bands and concat this with those bands.
 
         Returns
         -------
@@ -201,7 +202,7 @@ class Mosaic(
             Mosaic object with stacked bands
         """
 
-        if type(other) is not Mosaic:
+        if not isinstance(other, Mosaic):
             other = self.pick_bands(other)
 
         return Mosaic(
@@ -260,7 +261,7 @@ class Mosaic(
         """
 
         if scales is not None:
-            if type(scales) is not list:
+            if not isinstance(scales, list):
                 raise Exception("Scales must be a list")
             for scale in scales:
                 if len(scale) != 2:

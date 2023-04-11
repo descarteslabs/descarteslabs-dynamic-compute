@@ -177,7 +177,7 @@ class ImageStack(
         mosaic: Mosaic
             Mosaic proxy object associated with the index.
         """
-        if type(idx) is not int:
+        if not isinstance(idx, int):
             raise Exception("Index must be an integer")
 
         return Mosaic(_index(idx, self))
@@ -257,7 +257,7 @@ class ImageStack(
             ImageStack object with stacked bands
         """
 
-        if type(other) is not ImageStack:
+        if not isinstance(other, ImageStack):
             other = self.pick_bands(other)
 
         return ImageStack(
@@ -297,8 +297,18 @@ def reduction(
 
         return d
 
-    def mosaic_props(_ignore):
-        return {"bands": obj.bands, "pad": 0, "product_id": obj.product_id}
+    def mosaic_props(props):
+
+        if isinstance(props, list):
+            if not len(props):
+                raise Exception("Cannot perform a reduction over a stack of size zero.")
+            props = props[0]
+
+        return {
+            "bands": props.get("bands", []),
+            "pad": props.get("pad", 0),
+            "product_id": props.get("product_id", ""),
+        }
 
     if axis == "bands":
         return ImageStack(

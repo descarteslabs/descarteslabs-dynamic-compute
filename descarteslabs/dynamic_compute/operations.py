@@ -5,6 +5,7 @@ import io
 import json
 import os
 import pickle
+from copy import deepcopy
 from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
@@ -42,12 +43,12 @@ def format_bands(bands: Union[str, List[str]]) -> List[str]:
     tokens. If input is a list, verify every element is a
     """
 
-    if type(bands) == str:
+    if isinstance(bands, str):
         bands = bands.split(" ")
-    elif type(bands) is not list:
+    elif not isinstance(bands, list):
         raise Exception("Bands must be a string or a list of strings")
 
-    if not all(map(lambda x: type(x) is str, bands)):
+    if not all(map(lambda x: isinstance(x, str), bands)):
         raise Exception("Bands must be a string or a list of strings")
 
     return bands
@@ -122,12 +123,12 @@ def _default_property_propagation(
 
     assert band_op in ["same", "concat"], f"Unrecognized band_op {band_op}"
 
-    if type(props0) is dict:
+    if isinstance(props0, dict):
         bands0 = props0.get("bands", [])
     else:
         bands0 = []
 
-    if type(props1) is dict:
+    if isinstance(props1, dict):
         bands1 = props1.get("bands", [])
     else:
         bands1 = []
@@ -135,7 +136,7 @@ def _default_property_propagation(
     if band_op == "concat":
         if len(bands0) == 0 or len(bands1) == 0:
             raise Exception("Cannot concatenate bands for an object with no bands.")
-        new_props = props0.copy()
+        new_props = deepcopy(props0)
         new_props["bands"] = bands0 + bands1
         return new_props
 
@@ -148,7 +149,7 @@ def _default_property_propagation(
         if bands0 != bands1:
             raise Exception(f"Incompatible bands {bands0} and {bands1}")
 
-        new_props = props0.copy()
+        new_props = deepcopy(props0)
 
         if "product_id" in props1:
             product_id1 = props1["product_id"]
@@ -158,7 +159,7 @@ def _default_property_propagation(
         return new_props
 
     if len(bands1) == 1 and len(bands0) > 1:
-        new_props = props0.copy()
+        new_props = deepcopy(props0)
 
         if "product_id" in props1:
             product_id1 = props1["product_id"]
@@ -168,7 +169,7 @@ def _default_property_propagation(
         return new_props
 
     if len(bands1) == 1 and len(bands0) == 1:
-        new_props = props0.copy()
+        new_props = deepcopy(props0)
 
         new_props["bands"] = [f"{bands0[0]}_{op_name}_{bands1[0]}"]
         if "product_id" in props1:
@@ -256,12 +257,13 @@ def _apply_binary(
 def _pick_bands(arr, bands, args_props, **kwargs):
 
     bands = json.loads(bands)
+    properties = deepcopy(args_props[0])
 
-    if len(arr.shape) == 3:
+    if isinstance(properties, dict):
         # this is a Mosaic
 
         # Parse the bands to pick from JSON
-        arr_bands = args_props[0]["bands"]
+        arr_bands = properties["bands"]
 
         # Get the indices that each picked band corresponds to in the array
         bands_idx = [arr_bands.index(band) for band in bands]
@@ -271,13 +273,16 @@ def _pick_bands(arr, bands, args_props, **kwargs):
         arr_bands = np.ma.stack(arr_bands, axis=0)
 
         # Set the output bands according to the ones picked
-        properties = args_props[0].copy()
         properties["bands"] = bands
 
-    elif len(arr.shape) == 4:
+    elif isinstance(properties, list):
         # this is an ImageStack
 
-        arr_bands = args_props[0][0]["bands"]
+        if not len(properties):
+            # There are no images in this image collection
+            return None, {}
+
+        arr_bands = properties[0]["bands"]
 
         # Get the indices that each picked band corresponds to in the array
         bands_idx = [arr_bands.index(band) for band in bands]
@@ -286,10 +291,9 @@ def _pick_bands(arr, bands, args_props, **kwargs):
         arr_bands = [arr[:, i] for i in bands_idx]
         arr_bands = np.ma.stack(arr_bands, axis=1)
 
-        properties = args_props[0].copy()
-        for i, prop in enumerate(properties):
+        for prop in properties:
             # Set the output bands according to the ones picked
-            properties[i]["bands"] = bands
+            prop["bands"] = bands
 
     return arr_bands, properties
 
@@ -299,14 +303,14 @@ def _rename_bands(arr, bands, args_props, **kwargs):
 
     # Parse the renamed bands from JSON
     bands = json.loads(bands)
-    properties = args_props[0].copy()
+    properties = deepcopy(args_props[0])
 
     def _rename(props, bands, arr_shape):
         # Rename the bands
         if "bands" in props.keys():
             _band_lists = []
             for _bands in [props["bands"], bands]:
-                if type(_bands) is str:
+                if isinstance(_bands, str):
                     _band_lists.append(_bands.split(" "))
                 else:
                     _band_lists.append(_bands)
@@ -340,8 +344,8 @@ def _rename_bands(arr, bands, args_props, **kwargs):
 def _concat_bands(arr0, arr1, args_props, **kwargs):
     # Concatenate the bands
 
-    properties0 = args_props[0].copy()
-    properties1 = args_props[1].copy()
+    properties0 = deepcopy(args_props[0])
+    properties1 = deepcopy(args_props[1])
 
     def _concat_props(props0, props1, arr0, arr1):
 

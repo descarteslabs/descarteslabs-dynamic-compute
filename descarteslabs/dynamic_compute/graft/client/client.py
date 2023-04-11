@@ -200,7 +200,7 @@ def compress_graft(graft: Dict) -> Dict:
     for key in graft:
         if key == "returns":
             continue
-        if type(graft[key]) is str:
+        if isinstance(graft[key], str):
             strings.setdefault(graft[key], []).append(key)
 
     # Create a map called replacements from a key to be replaced to its replacement
@@ -227,7 +227,7 @@ def compress_graft(graft: Dict) -> Dict:
     # Walk the graft and replace places where we *use* the key to be replaced
     for key in new_graft:
 
-        if type(new_graft[key]) is not list:
+        if not isinstance(new_graft[key], list):
             # This is a value in the graft, not an operation that references values
             continue
 
@@ -235,7 +235,7 @@ def compress_graft(graft: Dict) -> Dict:
         op_list = new_graft[key]
 
         for i, item in enumerate(op_list):
-            if i == 0 or type(item) is not str:
+            if i == 0 or not isinstance(item, str):
                 # i == 0 corresponds to the operation identifier, e.g. "code"
                 # some entries in this list may not be strings.
                 continue
