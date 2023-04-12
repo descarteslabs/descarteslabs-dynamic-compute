@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from numbers import Number
 from typing import Callable, List, Optional, Tuple, Union
 
@@ -25,7 +26,6 @@ from .operations import (
     _concat_bands,
     _pick_bands,
     _rename_bands,
-    create_layer,
     create_mosaic,
     format_bands,
     set_cache_id,
@@ -92,6 +92,81 @@ class Mosaic(
     def __init__(self, g):
         set_cache_id(g)
         super().__init__(g)
+
+    def tile_layer(
+        self,
+        name=None,
+        scales=None,
+        colormap=None,
+        checkerboard=True,
+        log_level=logging.DEBUG,
+        **parameter_overrides,
+    ):
+        """
+        A `.DynamicComputeLayer` for this `Image`.
+
+        Generally, use `Image.visualize` for displaying on map.
+        Only use this method if you're managing your own ipyleaflet Map instances,
+        and creating more custom visualizations.
+
+        An empty  `Image` will be rendered as a checkerboard (default) or blank tile.
+
+        Parameters
+        ----------
+        name: str
+            The name of the layer.
+        scales: list of lists, default None
+            The scaling to apply to each band in the `Image`.
+
+            If `Image` contains 3 bands, ``scales`` must be a list like ``[(0, 1), (0, 1), (-1, 1)]``.
+
+            If `Image` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
+            or just ``(0, 1)`` for convenience
+
+            If None, each 256x256 tile will be scaled independently.
+            based on the min and max values of its data.
+        colormap: str, default None
+            The name of the colormap to apply to the `Image`. Only valid if the `Image` has a single band.
+        checkerboard: bool, default True
+            Whether to display a checkerboarded background for missing or masked data.
+        log_level: int, default logging.DEBUG
+            Only listen for log records at or above this log level during tile computation.
+            See https://docs.python.org/3/library/logging.html#logging-levels for valid
+            log levels.
+        **parameter_overrides: JSON-serializable value, Proxytype, or ipywidgets.Widget
+            Values---or ipywidgets---for any parameters that this `Image` depends on.
+
+            If this `Image` depends on ``wf.widgets``, you don't have to pass anything for those---any
+            widgets it depends on are automatically linked to the layer. However, you can override
+            their current values (or widgets) by passing new values (or ipywidget instances) here.
+
+            Values can be given as Proxytypes, or as Python objects like numbers,
+            lists, and dicts that can be promoted to them.
+            These arguments cannot depend on any parameters.
+
+            If an ``ipywidgets.Widget`` is given, it's automatically linked, so updating the widget causes
+            the argument value to change, and the layer to update.
+
+            Once these initial argument values are set, they can be modified by assigning to
+            `~.WorkflowsLayer.parameters` on the returned `WorkflowsLayer`.
+
+            For more information, see the docstring to `ParameterSet`.
+
+        Returns
+        -------
+        layer: `.WorkflowsLayer`
+        """
+        from descarteslabs.dynamic_compute.interactive.layer import DynamicComputeLayer
+
+        return DynamicComputeLayer(
+            self,
+            name=name,
+            scales=scales,
+            colormap=colormap,
+            checkerboard=checkerboard,
+            log_level=log_level,
+            parameter_overrides=parameter_overrides,
+        )
 
     @staticmethod
     def from_product_bands(
@@ -238,6 +313,9 @@ class Mosaic(
         map: ipyleaflet.leaflet.Map,
         colormap: Optional[str] = None,
         scales: Optional[List[List]] = None,
+        # scales: Optional[list] = None,
+        checkerboard=True,
+        **parameter_overrides,
     ) -> ipyleaflet.leaflet.TileLayer:
         """
         Visualize this Mosaic instance on a map. This call does not
@@ -267,9 +345,23 @@ class Mosaic(
                 if len(scale) != 2:
                     raise Exception("Each entry in scales must have a min and max")
 
-        layer = create_layer(name, self, colormap=colormap, scales=scales)
-        map.add_layer(layer)
-        return layer
+        for layer in map.layers:
+            if layer.name == name:
+                with layer.hold_url_updates():
+                    layer.set_imagery(self, **parameter_overrides)
+                    layer.set_scales(scales, new_colormap=colormap)
+                    layer.checkerboard = checkerboard
+                return layer
+        else:
+            layer = self.tile_layer(
+                name=name,
+                scales=scales,
+                colormap=colormap,
+                checkerboard=checkerboard,
+                **parameter_overrides,
+            )
+            map.add_layer(layer)
+            return layer
 
 
 def band_reduction(

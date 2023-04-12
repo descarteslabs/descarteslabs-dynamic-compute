@@ -4,7 +4,12 @@ import ipyleaflet
 import ipywidgets as widgets
 import traitlets
 
-from .layer_controller_row import LayerControllerRow, TileLayerControllerRow
+from .layer import DynamicComputeLayer
+from .layer_controller_row import (
+    DynamicComputeLayerControllerRow,
+    LayerControllerRow,
+    TileLayerControllerRow,
+)
 from .map_ import Map
 
 
@@ -60,7 +65,9 @@ class LayerControllerList(widgets.VBox):
                 # base layer is not in controller
                 continue
 
-            if self.control_tile_layers and isinstance(layer, ipyleaflet.TileLayer):
+            if isinstance(layer, DynamicComputeLayer):
+                controller_type = DynamicComputeLayerControllerRow
+            elif self.control_tile_layers and isinstance(layer, ipyleaflet.TileLayer):
                 controller_type = TileLayerControllerRow
             elif self.control_other_layers:
                 # fallback to LayerControllerRow

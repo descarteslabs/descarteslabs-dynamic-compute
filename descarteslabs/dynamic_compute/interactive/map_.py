@@ -44,6 +44,16 @@ class MapController(widgets.HBox):
         widgets.link((map, "min_zoom"), (zoom, "min"))
         widgets.link((map, "max_zoom"), (zoom, "max"))
 
+        inspect = widgets.ToggleButton(
+            value=map.inspecting_pixels,
+            description="Pixel inspector",
+            tooltip="Calculate pixel values on click",
+            icon="crosshairs",
+            layout=widgets.Layout(width="initial", overflow="visible"),
+        )
+        widgets.link((map, "inspecting_pixels"), (inspect, "value"))
+
+        # TODO add inspect to the list below once it's actually working
         super(MapController, self).__init__(children=(lonlat, zoom_label, zoom))
 
         self.layout.overflow = "hidden"
@@ -118,6 +128,7 @@ class MapApp(widgets.VBox):
         "add_control",
         "remove_layer",
         "remove_control",
+        "substitute",
         "clear_controls",
         "clear_layers",
         "on_interaction",
@@ -171,10 +182,10 @@ class MapApp(widgets.VBox):
 
         self.autoscale_outputs = widgets.VBox(
             [
-                # TODO once we get something like a workflows layer ready, they will go here
+                # TODO once we get DynamicComputeLayer layer working properly, they will go here
                 # x.autoscale_progress
                 # for x in reversed(self.map.layers)
-                # if isinstance(x, WorkflowsLayer)
+                # if isinstance(x, DynamicComputeLayer)
             ],
             layout=widgets.Layout(flex="0 0 auto", max_height="16rem"),
         )
@@ -195,10 +206,10 @@ class MapApp(widgets.VBox):
 
     def _update_autoscale_progress(self, change):
         self.autoscale_outputs.children = [
-            # TODO once we get something like a workflows layer ready, they will go here
-            #         x.autoscale_progress
-            #         for x in reversed(self.map.layers)
-            #         if isinstance(x, WorkflowsLayer)
+            # TODO once we get DynamicComputeLayer layer working properly, they will go here
+            # x.autoscale_progress
+            # for x in reversed(self.map.layers)
+            # if isinstance(x, DynamicComputeLayer)
         ]
 
     def __getattr__(self, attr):
@@ -237,7 +248,6 @@ class MapApp(widgets.VBox):
         """
 
         plaintext = repr(self)
-        # removed 110-character truncation here
         data = {"text/plain": plaintext}
         if self._view_name is not None:
             # The 'application/vnd.jupyter.widget-view+json' mimetype has not been registered yet.
