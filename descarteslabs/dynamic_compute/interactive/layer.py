@@ -11,9 +11,8 @@ import ipywidgets as widgets
 import requests
 import traitlets
 
-from client.descarteslabs.dynamic_compute.graft import client as graft_client
-from client.descarteslabs.dynamic_compute.operations import API_HOST, set_cache_id
-
+from ..graft import client as graft_client
+from ..operations import API_HOST, set_cache_id
 from . import parameters
 from .clearable import ClearableOutput
 from .tile_url import validate_scales
