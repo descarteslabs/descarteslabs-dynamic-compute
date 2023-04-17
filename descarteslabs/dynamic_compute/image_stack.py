@@ -63,6 +63,10 @@ class ImageStack(
     # The full graft uses the scenes graft to generate an ImageCollcetion and adds a instructions
     # to accesss the raster data.
 
+    @classmethod
+    def return_precedence(cls):
+        return 2
+
     def __init__(
         self,
         full_graft: Dict,
@@ -393,6 +397,11 @@ def dot(
                 )
             )
         else:
+            if not isinstance(b, np.ndarray):
+                raise NotImplementedError(
+                    f"`image_stack.dot` not implemented for {type(a)}, {type(b)}"
+                )
+
             # ImageStack times numpy array
             if len(b.shape) == 2:
                 # ImageStack time matrix -- perform the matrix multiplication along the images.
@@ -418,6 +427,11 @@ def dot(
                     f'Incompatible dimension for "b" {b.shape} in image_stack.dot'
                 )
     else:
+        if not isinstance(a, np.ndarray):
+            raise NotImplementedError(
+                f"`image_stack.dot` not implemented for {type(a)}, {type(b)}"
+            )
+
         # numpy array times ImageStack
         if len(a.shape) == 2:
             # Matrix times ImageStack -- perform the matrix multiplication along the bands.

@@ -85,6 +85,10 @@ class Mosaic(
     # to be used instead of the default ComputeMap mixins
     ComputeMap,  # Base class
 ):
+    @classmethod
+    def return_precedence(cls):
+        return 1
+
     """
     Class wrapper around mosaic operations
     """
@@ -460,6 +464,11 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                 )
             )
         else:
+            if not isinstance(b, np.ndarray):
+                raise NotImplementedError(
+                    f"`mosaic.dot` not implemented for {type(a)}, {type(b)}"
+                )
+
             # Mosaic times numpy array
             if len(b.shape) == 2:
                 # Mosaic time matrix -- perform the matrix multiplication along the bands.
@@ -485,6 +494,11 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     f'Incompatible dimension for "b" {b.shape} in mosaic.dot'
                 )
     else:
+        if not isinstance(a, np.ndarray):
+            raise NotImplementedError(
+                f"`mosaic.dot` not implemented for {type(a)}, {type(b)}"
+            )
+
         # numpy array times Mosaic
         if len(a.shape) == 2:
             # Matrix times mosaic -- perform the matrix multiplication along the bands.
