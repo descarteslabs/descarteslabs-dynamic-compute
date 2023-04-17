@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import json
+from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import cloudpickle
@@ -59,7 +60,7 @@ class ImageStack(
     # creating a new "scenes" graft that applies a new filtering operation to the existing
     # "scenes" graft.
     #
-    # The full  graft uses the scenes graft to generate an ImageCollcetion and adds a instructions
+    # The full graft uses the scenes graft to generate an ImageCollcetion and adds a instructions
     # to accesss the raster data.
 
     def __init__(
@@ -84,6 +85,10 @@ class ImageStack(
             Bands either as space separated names in a single string or a list of band names
         product_id: str
             Product id
+        start_datetime: Optional[str]
+            Optional initial cutoff for an ImageStack as YYYYMMDD
+        start_datetime: Optional[str]
+            Optional final cutoff for an ImageStack as YYYYMMDD
         """
         set_cache_id(full_graft)
         super().__init__(full_graft)
@@ -291,17 +296,23 @@ def reduction(
             f"Reductions over {axis} not implemented for ImageStacks"
         )
 
-    def strip_bands(d):
-        if "bands" in d:
-            d.pop("bands")
+    def strip_bands(props):
 
-        return d
+        props = deepcopy(props)
+
+        for d in props:
+            if "bands" in d:
+                d.pop("bands")
+
+        return props
 
     def mosaic_props(props):
 
+        props = deepcopy(props)
+
         if isinstance(props, list):
             if not len(props):
-                raise Exception("Cannot perform a reduction over a stack of size zero.")
+                return {}
             props = props[0]
 
         return {

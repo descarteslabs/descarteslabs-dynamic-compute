@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import sys
 from copy import copy
+from io import StringIO
 from numbers import Number
 from typing import Any, Callable, Dict, List, Optional, Type, Union
 
@@ -11,6 +13,7 @@ import descarteslabs as dl
 import numpy as np
 
 from .graft.client import client as graft_client
+from .graft.interpreter.interpreter import interpret
 from .graft.syntax import syntax as graft_syntax
 from .operations import _apply_binary, _apply_unary, compute_aoi
 
@@ -32,11 +35,74 @@ type_map = {
 }
 
 
+class Capturing(list):
+    """
+    A class for capturing stdout as a list of strings.
+    Lifted from https://stackoverflow.com/a/16571630
+    """
+
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
+
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio  # free up some memory
+        sys.stdout = self._stdout
+
+
+# Stub functions for primitives. Note we could just use
+# a single no-op function, but the function name
+# appears in the output
+def code(*args, **kwargs):
+    return None
+
+
+def mosaic(*args, **kwargs):
+    return None
+
+
+def select_scenes(*args, **kwargs):
+    return None
+
+
+def filter_scenes(*args, **kwargs):
+    return None
+
+
+def stack_scenes(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
     descended from ComputeMap
     """
+
+    def __str__(self):
+        obj_str = str(type(self))
+        if obj_str.startswith("<class '"):
+            return obj_str.split("'")[1]
+        return obj_str
+
+    def __repr__(self):
+
+        with Capturing() as output:
+            interpret(
+                dict(self),
+                builtins=[
+                    ("code", code),
+                    ("mosaic", mosaic),
+                    ("select_scenes", select_scenes),
+                    ("filter_scenes", filter_scenes),
+                    ("stack_scenes", stack_scenes),
+                ],
+                debug=True,
+            )()
+
+        return "\n".join(output)
 
     def __init__(self, d):
         """

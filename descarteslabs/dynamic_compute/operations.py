@@ -57,7 +57,11 @@ def format_bands(bands: Union[str, List[str]]) -> List[str]:
 def _apply_unary(arg, value_func, prop_func=lambda x: x):
     @operation
     def encoded_func(a, args_props, *args, **kwargs):
-        return value_func(a), prop_func(args_props[0])
+        # Often property processing will detect and report and error better
+        # than value processing. For this reason we process properties first.
+        new_props = prop_func(args_props[0])
+        new_value = value_func(a)
+        return new_value, new_props
 
     return encoded_func(arg)
 
@@ -278,9 +282,9 @@ def _pick_bands(arr, bands, args_props, **kwargs):
     elif isinstance(properties, list):
         # this is an ImageStack
 
-        if not len(properties):
+        if not properties:
             # There are no images in this image collection
-            return None, {}
+            return arr, []
 
         arr_bands = properties[0]["bands"]
 
@@ -375,10 +379,11 @@ def _concat_bands(arr0, arr1, args_props, **kwargs):
         assert (
             arr0.shape[0] == arr1.shape[0]
         ), "Cannot concat bands, different number of images in each stack"
+
         result = np.ma.concatenate((arr0, arr1), axis=1)
 
-        for i, props in enumerate(args_props):
-            properties0[i] = _concat_props(props[i], properties1[i], arr0, arr1)
+        for prop0, prop1 in zip(properties0, properties1):
+            prop0 = _concat_props(prop0, prop1, arr0, arr1)
 
     return result, properties0
 
@@ -387,12 +392,17 @@ def _concat_bands(arr0, arr1, args_props, **kwargs):
 def _index(idx, arr, args_props, **kwargs):
     props = args_props[1]
 
-    if "image_props" in props:
-        new_props = props["image_props"][idx]
-    else:
-        new_props = props
+    if not isinstance(props, list):
+        raise Exception("Cannot index into a non-list")
 
-    return arr[idx], new_props
+    try:
+        image_prop = props[idx]
+    except IndexError:
+        raise IndexError(
+            f"Index {idx} is outside the bounds of of a list of size {props}"
+        )
+
+    return arr[idx], image_prop
 
 
 @operation
