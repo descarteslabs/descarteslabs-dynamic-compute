@@ -628,14 +628,38 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
     ----------
     graft : dict
         The graft (ie. the directed acyclic graph) that describes how this tile layer should be formed.
-    aoi : descarteslabs.scenes.AOI
-        The AOI to compute.
+    aoi : descarteslabs.geo.GeoContext
+            GeoContext for which to compute evaluate this ComputeMap
 
     Returns
     -------
     arr : numpy.ma.MaskedArray
         The computed AOI.
     """
+
+    import descarteslabs
+
+    if isinstance(
+        aoi,
+        (
+            descarteslabs.core.common.geo.geocontext.AOI,
+            descarteslabs.core.common.geo.geocontext.DLTile,
+            descarteslabs.core.common.geo.geocontext.XYZTile,
+        ),
+    ):
+        aoi = dl.geo.AOI(
+            geometry=aoi.geometry,
+            resolution=aoi.resolution,
+            crs=aoi.crs,
+            align_pixels=False,
+            bounds=aoi.bounds,
+            bounds_crs=aoi.bounds_crs,
+            shape=None,
+            all_touched=False,
+        )
+    else:
+        raise TypeError(f"`compute` not implemented for AOIs of type {type(aoi)}")
+
     # Create a layer from the graft
     # NOTE: This is sort of redundant, but layer IDs are hashes so it won't result in duplicates of existing layers
     response = requests.post(

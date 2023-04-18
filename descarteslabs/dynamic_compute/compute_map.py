@@ -181,7 +181,7 @@ class ComputeMap(dict):
 
         Parameters
         ----------
-        aoi : descarteslabs.geo.AOI
+        aoi : descarteslabs.geo.GeoContext
             GeoContext for which to compute evaluate this ComputeMap
 
         Returns
@@ -191,6 +191,7 @@ class ComputeMap(dict):
             an array, properties as a list, properties as dict, or both
             as a DotDict
         """
+
         value, properties = compute_aoi(self, aoi)
 
         if "return_type" in properties:
