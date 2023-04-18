@@ -651,11 +651,11 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
             geometry=aoi.geometry,
             resolution=aoi.resolution,
             crs=aoi.crs,
-            align_pixels=False,
+            align_pixels=aoi.align_pixels if hasattr(aoi, "align_pixels") else True,
             bounds=aoi.bounds,
             bounds_crs=aoi.bounds_crs,
-            shape=None,
-            all_touched=False,
+            shape=aoi.shape if hasattr(aoi, "shape") else None,
+            all_touched=aoi.all_touched,
         )
     else:
         raise TypeError(f"`compute` not implemented for AOIs of type {type(aoi)}")
@@ -684,6 +684,7 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
             "bounds": aoi.bounds,
             "bounds_crs": aoi.bounds_crs,
             "shape": aoi.shape,
+            "all_touched": aoi.all_touched,
         },
     )
 

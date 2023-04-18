@@ -1,6 +1,8 @@
 import ipywidgets as widgets
 import traitlets
 
+from .utils import wrap_num
+
 
 class LonLatInput(widgets.Text):
     """
@@ -23,6 +25,7 @@ class LonLatInput(widgets.Text):
     def _sync_view_to_model(self, change):
         new = change["new"]
         values = [part.strip() for part in new.split(",")]
+        values = [values[0], str(wrap_num(float(values[1])))]
         if self.model_is_latlon:
             values.reverse()
         self.model = values
@@ -30,8 +33,9 @@ class LonLatInput(widgets.Text):
     @traitlets.observe("model")
     def _sync_model_to_view(self, change):
         new = change["new"]
+        new_list = [wrap_num(new[0]), new[1]]
         string = "{:.4f}, {:.4f}".format(
             # https://xkcd.com/2170/
-            *(reversed(new) if self.model_is_latlon else new)
+            *(reversed(new_list) if self.model_is_latlon else new_list)
         )
         self.value = string

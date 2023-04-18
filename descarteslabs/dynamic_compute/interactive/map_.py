@@ -8,7 +8,7 @@ import traitlets
 
 from .clearable import ClearableOutput
 from .lonlat import LonLatInput
-from .utils import tuple_move
+from .utils import tuple_move, wrap_num
 
 EARTH_EQUATORIAL_RADIUS_WGS84_M = 6378137.0
 
@@ -441,7 +441,7 @@ class Map(ipyleaflet.Map):
         """
         A Scenes :class:`~descarteslabs.scenes.geocontext.AOI` representing
         the current view area and resolution of the map. The ``bounds`` of the
-        of the returned geocontext are the current bounds of the map viewport.
+        of the returned geocontext are the current valid bounds of the map viewport.
 
         Parameters
         ----------
@@ -468,8 +468,9 @@ class Map(ipyleaflet.Map):
         -------
         geoctx: descarteslabs.scenes.AOI
         """
+        from descarteslabs.geo import AOI
 
-        bounds = [self.west, self.south, self.east, self.north]
+        bounds = self.valid_4326_bounds()
         if bounds == [0, 0, 0, 0]:
             raise RuntimeError(
                 "Undefined bounds, please ensure that the interactive map has "
@@ -484,7 +485,7 @@ class Map(ipyleaflet.Map):
 
         if crs.lower() == "utm":
             lat, lng = self.center
-
+            lng = wrap_num(lng)
             # Source: https://gis.stackexchange.com/questions/13291/computing-utm-zone-from-lat-long-point
             if 56.0 <= lat < 64.0 and 3.0 <= lng < 12.0:
                 # western coast of Norway
@@ -504,7 +505,7 @@ class Map(ipyleaflet.Map):
 
             crs = "+proj=utm +zone={} +datum=WGS84 +units=m +no_defs ".format(zone)
 
-        return dl.geo.AOI(
+        return AOI(
             bounds=bounds,
             crs=crs,
             bounds_crs="EPSG:4326",
@@ -512,3 +513,18 @@ class Map(ipyleaflet.Map):
             shape=shape,
             align_pixels=False,
         )
+
+    def valid_4326_bounds(self):
+        """
+        Returns a valid bounding box for crs 4326 in the case that someone has panned beyond the allowable extent.
+
+        Returns
+        -------
+            list of coordinates [west, south, east, north] representing a bounding box
+        """
+        dl
+        # TODO: This isn't quite right for envelopes that intersect the antimeridian - the dl.geo.AOI call will still
+        # error on those because there's not a way to make a single bounding box rectangle that crosses the
+        # antimeridian (it really should be two bboxes). (explanation https://www.rfc-editor.org/rfc/rfc7946#section-5.2).
+
+        return [wrap_num(self.west), self.south, wrap_num(self.east), self.north]
