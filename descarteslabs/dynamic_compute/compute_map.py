@@ -75,6 +75,10 @@ def stack_scenes(*args, **kwargs):
     return None
 
 
+def array(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -135,6 +139,7 @@ class ComputeMap(dict):
                     ("select_scenes", select_scenes),
                     ("filter_scenes", filter_scenes),
                     ("stack_scenes", stack_scenes),
+                    ("array", array),
                 ],
                 debug=True,
             )()
