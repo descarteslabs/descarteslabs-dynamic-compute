@@ -11,7 +11,6 @@ import ipywidgets as widgets
 import requests
 import traitlets
 
-from ..graft import client as graft_client
 from ..operations import API_HOST, set_cache_id
 from . import parameters
 from .clearable import ClearableOutput
@@ -105,10 +104,58 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     attribution = traitlets.Unicode("Descartes Labs").tag(sync=True, o=True)
     min_zoom = traitlets.Int(5).tag(sync=True, o=True)
     url = traitlets.Unicode(read_only=True).tag(sync=True)
+    layer_id = traitlets.Unicode(read_only=True).tag(sync=True)
     clear_on_update = traitlets.Bool(default_value=True)
 
-    imagery = traitlets.Instance(dict, read_only=True)
-    value = traitlets.Instance(dict, read_only=True, allow_none=True)
+    imagery = traitlets.Union(
+        [
+            traitlets.Instance(
+                "descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
+            ),
+            traitlets.Instance(
+                "client.descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
+            ),
+            traitlets.Instance(
+                "descarteslabs.dynamic_compute.image_stack.ImageStack", read_only=True
+            ),
+            traitlets.Instance(
+                "client.descarteslabs.dynamic_compute.image_stack.ImageStack",
+                read_only=True,
+            ),
+        ]
+    )
+
+    value = traitlets.Union(
+        [
+            traitlets.Instance(
+                "descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
+            ),
+            traitlets.Instance(
+                "client.descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
+            ),
+            traitlets.Instance(
+                "descarteslabs.dynamic_compute.image_stack.ImageStack", read_only=True
+            ),
+            traitlets.Instance(
+                "client.descarteslabs.dynamic_compute.image_stack.ImageStack",
+                read_only=True,
+            ),
+        ]
+    )
+    # imagery = traitlets.Union(
+    #     [
+    #         traitlets.Instance(Mosaic, read_only=True),
+    #         traitlets.Instance(ImageStack, read_only=True)
+    #     ]
+    # )
+    # value = traitlets.Union(
+    #     [
+    #         traitlets.Instance(Mosaic, read_only=True),
+    #         traitlets.Instance(ImageStack, read_only=True)
+    #     ]
+    # )
+
+    # image_value = traitlets.Instance("descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True, allow_none=True)
     image_value = traitlets.Instance(dict, read_only=True, allow_none=True)
 
     parameters = traitlets.Instance(parameters.ParameterSet, read_only=True)
@@ -141,6 +188,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         parameter_overrides=None,
         **kwargs,
     ):
+
         if parameter_overrides is None:
             parameter_overrides = {}
 
@@ -299,7 +347,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         )
         response.raise_for_status()
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
-
+        self.set_trait("layer_id", layer_id)
         # URL encode query parameters
         params = {}
         if scales is not None:
@@ -349,44 +397,11 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
     @traitlets.observe("xyz_obj", "parameters", type=traitlets.All)
     def _update_value(self, change):
-        if not self.trait_has_value("xyz_obj"):
-            # avoids crazy tracebacks in __init__ when given bad arguments,
-            # and `hold_trait_notifications` tries to fire notifiers _before_
-            # reraising the exception: `xyz_obj` might not be set yet,
-            # and accessing it would cause its own spew of confusing traitlets errors.
-            return
-
-        if len(self.xyz_obj.params) > 0:
-            try:
-                # attept to promote parameters as the Function's arguments
-                args, kwargs = self.xyz_obj.object._promote_arguments(
-                    **self.parameters.to_dict()
-                )
-            except Exception:
-                # when arguments are invalid (currently, only if a LayerPicker has no layer selected),
-                # `value` is None
-                self.set_trait("value", None)
-                return
-        else:
-            args, kwargs = (), {}
-
-        graft = graft_client.apply_graft("XYZ.use", self.xyz_obj.id, *args, **kwargs)
-
-        self.set_trait(
-            "value",
-            self.imagery._from_graft(graft),
-        )
+        self.set_trait("value", self.imagery)
 
     @traitlets.observe("value", "reduction")
     def _update_image_value(self, change):
-        # TODO do we actually want this thing that's going to inspect/compute
-        # to be an XYZ reference instead of full graft? possibly not.
-        # although weirdly, if the firestore doc is cached on the tiles server,
-        # sending the xyz ID might actually be a tiny tiny bit faster than the whole graft
-        # with network latency... idk.
         value = self.value
-        # if isinstance(value, ImageCollection):
-        #     value = value.reduction(self.reduction, axis="images")
 
         self.set_trait("image_value", value)
 
@@ -410,6 +425,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             return
         try:
             self.set_trait("url", self.make_url())
+
         except ValueError as e:
             if "Invalid scales passed" not in str(e):
                 raise e
@@ -446,31 +462,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         msg = "{}: {} - {}\n".format(self.name, log_level, message)
         self.log_output.append_stdout(msg)
 
-    # @traitlets.observe("xyz_obj", "session_id", "log_level")
-    # def _update_logger(self, change):
-    #     if self.log_output is None:
-    #         return
-
-    #     self.clear_logs()
-
-    #     if self._log_listener is not None:
-    #         self._log_listener.stop(timeout=1)
-
-    #     listener = self.xyz_obj.log_listener()
-    #     listener.add_callback(
-    #         lambda record: self._log(record.record.message, level=record.record.level)
-    #     )
-    #     with warnings.catch_warnings(record=True) as ws:
-    #         listener.listen(
-    #             self.session_id,
-    #             datetime.datetime.now(datetime.timezone.utc),
-    #             level=self.log_level,
-    #         )
-
-    #     self._log_listener = listener
-    #     for w in ws:
-    #         self._log(w.message)
-
     def _stop_logger(self):
         if self._log_listener is not None:
             self._log_listener.stop(timeout=1)
@@ -480,9 +471,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     def _toggle_log_listener_if_output(self, change):
         if change["new"] is None:
             self._stop_logger()
-        # else:
-        #     if self._log_listener is None:
-        #         self._update_logger({})
 
     def __del__(self):
         self._stop_logger()

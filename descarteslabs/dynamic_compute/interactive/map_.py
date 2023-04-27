@@ -7,6 +7,7 @@ import ipywidgets as widgets
 import traitlets
 
 from .clearable import ClearableOutput
+from .inspector import PixelInspector
 from .lonlat import LonLatInput
 from .utils import tuple_move, wrap_num
 
@@ -54,7 +55,9 @@ class MapController(widgets.HBox):
         widgets.link((map, "inspecting_pixels"), (inspect, "value"))
 
         # TODO add inspect to the list below once it's actually working
-        super(MapController, self).__init__(children=(lonlat, zoom_label, zoom))
+        super(MapController, self).__init__(
+            children=(lonlat, zoom_label, zoom, inspect)
+        )
 
         self.layout.overflow = "hidden"
         self.layout.flex = "0 0 auto"
@@ -528,3 +531,16 @@ class Map(ipyleaflet.Map):
         # antimeridian (it really should be two bboxes). (explanation https://www.rfc-editor.org/rfc/rfc7946#section-5.2).
 
         return [wrap_num(self.west), self.south, wrap_num(self.east), self.north]
+
+    @traitlets.observe("inspecting_pixels", type="change")
+    def _update_inspecting_pixels(self, change):
+        current_inspector = getattr(self, "_inspector", None)
+
+        if change["new"] is True:
+            if current_inspector:
+                return
+            self._inspector = PixelInspector(self)
+        else:
+            if current_inspector:
+                current_inspector.unlink()
+                self._inspector = None

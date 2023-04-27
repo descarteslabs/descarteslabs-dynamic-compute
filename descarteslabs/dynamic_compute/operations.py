@@ -22,6 +22,9 @@ API_HOST = os.getenv(
     "API_HOST", "https://dynamic-compute.appsci-production.aws.descarteslabs.com"
 )
 
+SINGLE_POINT_BUFFER_VALUE = 0.0000001
+WGS84_CRS = "EPSG:4326"
+
 
 def operation(func: Callable):
     """
@@ -619,7 +622,9 @@ def stack_scenes(scenes_graft: Dict, bands: str) -> Dict:
     return graft_client.apply_graft("stack_scenes", scenes_graft, bands)
 
 
-def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
+def compute_aoi(
+    graft: Dict, aoi: dl.geo.AOI, layer_id: str = None
+) -> np.ma.MaskedArray:
     """Compute an AOI of a layer.
 
     Currently, only rasters are supported.
@@ -629,7 +634,9 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
     graft : dict
         The graft (ie. the directed acyclic graph) that describes how this tile layer should be formed.
     aoi : descarteslabs.geo.GeoContext
-            GeoContext for which to compute evaluate this ComputeMap
+        GeoContext for which to compute evaluate this ComputeMap
+    layer_id: Optional str
+        layer id to reuse if supplied
 
     Returns
     -------
@@ -660,17 +667,18 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
     else:
         raise TypeError(f"`compute` not implemented for AOIs of type {type(aoi)}")
 
-    # Create a layer from the graft
-    # NOTE: This is sort of redundant, but layer IDs are hashes so it won't result in duplicates of existing layers
-    response = requests.post(
-        f"{API_HOST}/layers/",
-        headers={"Authorization": dl.auth.Auth().token},
-        json={
-            "graft": graft,
-        },
-    )
-    response.raise_for_status()
-    layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
+    if not layer_id:
+        # Create a layer from the graft if an id isn't supplied
+        # NOTE: This is sort of redundant, but layer IDs are hashes so it won't result in duplicates of existing layers
+        response = requests.post(
+            f"{API_HOST}/layers/",
+            headers={"Authorization": dl.auth.Auth().token},
+            json={
+                "graft": graft,
+            },
+        )
+        response.raise_for_status()
+        layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
     # Compute the AOI
     response = requests.post(
@@ -695,3 +703,59 @@ def compute_aoi(graft: Dict, aoi: dl.geo.AOI) -> np.ma.MaskedArray:
     buf = io.BytesIO(response.content)
     payload = pickle.load(buf)
     return payload["array"], payload["properties"]
+
+
+def value_at(
+    graft: Dict, lat: float, lon: float, layer_id: Optional[str] = None
+) -> List[float]:
+    """
+    Return the mean values for each band of a graft at a specific location
+
+    Parameters
+    ----------
+    graft : dict
+        The graft (ie. the directed acyclic graph) that describes how this tile layer should be formed.
+    lat
+        latitude of the point to evaluate
+    lon
+        longitude of the point to evaluate
+    layer_id: Optional str
+        layer id to reuse if supplied
+
+    Returns
+    -------
+        list of numbers
+    """
+    from statistics import mean
+
+    aoi = _geocontext_from_latlon(lat, lon)
+    value_array, _ = compute_aoi(graft, aoi, layer_id)
+
+    return (
+        [mean(data_value.data[0]) for data_value in value_array]
+        if len(value_array.shape) > 1
+        else list(value_array)
+    )
+
+
+def _geocontext_from_latlon(lat: float, lon: float) -> dl.geo.AOI:
+    """
+    Creates a tiny AOI from a lat/lon location. Private helper method for value_at, should only be called internally.
+
+    Parameters
+    ----------
+    lat
+        Latitude to create and center the AOI
+    lon
+        Longitude to create and center the AOI
+
+    Returns
+    -------
+        dl.geo.AOI
+    """
+    from shapely.geometry import Point
+
+    buffer = SINGLE_POINT_BUFFER_VALUE
+    xy = Point(lon, lat)
+    bounds = xy.buffer(buffer).bounds
+    return dl.geo.AOI(bounds=bounds, crs=WGS84_CRS, shape=(1, 1), all_touched=True)
