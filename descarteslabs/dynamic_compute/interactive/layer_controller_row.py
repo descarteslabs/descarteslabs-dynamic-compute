@@ -6,6 +6,7 @@ import numpy as np
 import traitlets
 from ipyleaflet import TileLayer
 
+from ..mosaic import Mosaic
 from .layer import DynamicComputeLayer
 from .map_ import Map
 
@@ -179,8 +180,7 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
     layer = traitlets.Instance(DynamicComputeLayer)
 
     scaleable = traitlets.Bool(True)
-    # TODO change autoscaleable back to true once we get autoscale working
-    autoscaleable = traitlets.Bool(False)
+    autoscaleable = traitlets.Bool(True)
     colormappable = traitlets.Bool(True)
     reducible = traitlets.Bool(True)
     checkerboardable = traitlets.Bool(True)
@@ -191,6 +191,7 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
         if layer.log_output is None:
             layer.log_output = map.logs
         self.layer = layer
+
         self.map = map
 
         visible = widgets.Checkbox(
@@ -237,16 +238,16 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
 
         self._widgets["scales"] = [r_min, r_max, g_min, g_max, b_min, b_max]
 
-        # colormap = widgets.Dropdown(
-        #     options=[None] + Image._colormaps,
-        #     value=layer.colormap,
-        #     layout=widgets.Layout(width="initial", max_width="10.6em"),
-        # )
-        # widgets.link((colormap, "value"), (layer, "colormap"))
-        # colormap.observe(self._observe_supported_controls, names="value")
-        # colormap.observe(self._observe_scales_validity, names="value")
-        # # ^ if colormap is set/unset from None, we need to re-render controls
-        # self._widgets["colormap"] = colormap
+        colormap = widgets.Dropdown(
+            options=[None] + Mosaic._colormaps,
+            value=layer.colormap,
+            layout=widgets.Layout(width="initial", max_width="10.6em"),
+        )
+        widgets.link((colormap, "value"), (layer, "colormap"))
+        colormap.observe(self._observe_supported_controls, names="value")
+        colormap.observe(self._observe_scales_validity, names="value")
+        # ^ if colormap is set/unset from None, we need to re-render controls
+        self._widgets["colormap"] = colormap
 
         # when using a colormap display 'min' and 'max' placeholders but link
         # to r_min and r_max
@@ -268,10 +269,10 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
             )
             self._widgets["cmap_legend"] = legend
 
-            # colormap.observe(
-            #     self._observe_colormap_make_legend, names="value", type="change"
-            # )
-            # self._observe_colormap_make_legend({})  # initialize colormap
+            colormap.observe(
+                self._observe_colormap_make_legend, names="value", type="change"
+            )
+            self._observe_colormap_make_legend({})  # initialize colormap
 
         reduction = widgets.Dropdown(
             options=["mosaic", "min", "max", "mean", "median", "sum", "std", "count"],
@@ -357,11 +358,10 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
                         widgets["cmap_scales"][1],
                     ]
                 )
-        # if self.colormappable:
-        #     children.append(widgets["colormap"])
-        #     widgets["colormap"].layout.width = (
-        #         "2.1em" if self.layer.colormap is None else ""
-        #     )
+        if self.colormappable and self.layer.colormap:
+            # this widget shouldn't show if there isn't a colormap (since a colormap is required on single band images)
+            children.append(widgets["colormap"])
+
         # if self.reducible and isinstance(self.layer.imagery, ImageCollection):
         #     children.append(widgets["reduction"])
         if self.checkerboardable:
@@ -411,8 +411,9 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
             if self.layer.autoscale_progress.outputs:
                 self.layer.autoscale_progress.set_output(())
 
+            # TODO figure out how to show progress in the dynamic compute world
             result = self.layer.imagery.compute(
-                ctx, progress_bar=self.layer.autoscale_progress
+                ctx,  # progress_bar=self.layer.autoscale_progress
             )
 
         except Exception as e:
@@ -445,6 +446,7 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
 
 def get_matplotlib():
     try:
+        import matplotlib.backends.backend_agg
         import matplotlib.pyplot
 
         return matplotlib

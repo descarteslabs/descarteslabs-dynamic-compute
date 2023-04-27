@@ -142,18 +142,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             ),
         ]
     )
-    # imagery = traitlets.Union(
-    #     [
-    #         traitlets.Instance(Mosaic, read_only=True),
-    #         traitlets.Instance(ImageStack, read_only=True)
-    #     ]
-    # )
-    # value = traitlets.Union(
-    #     [
-    #         traitlets.Instance(Mosaic, read_only=True),
-    #         traitlets.Instance(ImageStack, read_only=True)
-    #     ]
-    # )
 
     # image_value = traitlets.Instance("descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True, allow_none=True)
     image_value = traitlets.Instance(dict, read_only=True, allow_none=True)
@@ -261,16 +249,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         xyz_warnings = []
         with self.hold_url_updates():
             if not self.trait_has_value("imagery") or imagery is not self.imagery:
-                # `trait_has_value` is False when the layer is first constructed;
-                # accessing `self.imagery` would cause a validation error in that case.
-                # with warnings.catch_warnings(record=True) as xyz_warnings:
-                #     xyz = XYZ(
-                #         imagery,
-                #         name=self.name,
-                #         public=False,
-                #     )
                 self.set_trait("imagery", imagery)
-                # self.set_trait("xyz_obj", xyz)
 
             self.parameters.update(**merged_params)
 
@@ -324,15 +303,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         # primarily for the `LayerPicker` widget, which can have no layer selected.
         if any(v is None for v in parameters.values()):
             return ""
-
-        # return self.xyz_obj.url(
-        #     session_id=self.session_id,
-        #     colormap=self.colormap or "",
-        #     scales=scales,
-        #     reduction=self.reduction,
-        #     checkerboard=self.checkerboard,
-        #     **parameters,
-        # )
 
         # Make the layer cacheable
         set_cache_id(self.imagery)
@@ -416,7 +386,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         "g_max",
         "b_min",
         "b_max",
-        # "xyz_obj",
         "session_id",
         "parameters",
     )
