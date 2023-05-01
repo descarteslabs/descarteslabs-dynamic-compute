@@ -448,6 +448,7 @@ class Mosaic(
         "jet",
         "nipy_spectral",
         "gist_ncar",
+        "turbo",
     ]
 
 

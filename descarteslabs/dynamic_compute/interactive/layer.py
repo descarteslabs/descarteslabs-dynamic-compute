@@ -324,6 +324,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             params["scales"] = json.dumps(scales)
         if self.colormap is not None:
             params["colormap"] = self.colormap
+        if self.checkerboard is not None:
+            params["checkerboard"] = self.checkerboard
         # if vector_tile_layer_styles is None:
         #     vector_tile_layer_styles = {}
         query_params = urlencode(params)
