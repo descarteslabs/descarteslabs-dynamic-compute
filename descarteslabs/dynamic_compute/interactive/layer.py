@@ -107,47 +107,14 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     layer_id = traitlets.Unicode(read_only=True).tag(sync=True)
     clear_on_update = traitlets.Bool(default_value=True)
 
-    imagery = traitlets.Union(
-        [
-            traitlets.Instance(
-                "descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
-            ),
-            traitlets.Instance(
-                "client.descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
-            ),
-            traitlets.Instance(
-                "descarteslabs.dynamic_compute.image_stack.ImageStack", read_only=True
-            ),
-            traitlets.Instance(
-                "client.descarteslabs.dynamic_compute.image_stack.ImageStack",
-                read_only=True,
-            ),
-        ]
-    )
+    imagery = traitlets.Instance(dict, read_only=True)
 
-    value = traitlets.Union(
-        [
-            traitlets.Instance(
-                "descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
-            ),
-            traitlets.Instance(
-                "client.descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True
-            ),
-            traitlets.Instance(
-                "descarteslabs.dynamic_compute.image_stack.ImageStack", read_only=True
-            ),
-            traitlets.Instance(
-                "client.descarteslabs.dynamic_compute.image_stack.ImageStack",
-                read_only=True,
-            ),
-        ]
-    )
+    value = traitlets.Instance(dict, read_only=True)
 
-    # image_value = traitlets.Instance("descarteslabs.dynamic_compute.mosaic.Mosaic", read_only=True, allow_none=True)
     image_value = traitlets.Instance(dict, read_only=True, allow_none=True)
 
     parameters = traitlets.Instance(parameters.ParameterSet, read_only=True)
-    # xyz_obj = traitlets.Instance(XYZ, read_only=True)
+
     session_id = traitlets.Unicode(read_only=True)
     log_level = traitlets.Int(logging.DEBUG)
 
