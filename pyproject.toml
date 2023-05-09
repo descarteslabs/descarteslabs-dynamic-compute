@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dynamic_compute"
-version = "0.2.3"
+version = "0.2.4"
 description = ""
 authors = ["Descartes Labs"]
 readme = "README.md"
