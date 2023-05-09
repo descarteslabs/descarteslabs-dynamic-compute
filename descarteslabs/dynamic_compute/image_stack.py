@@ -30,6 +30,7 @@ from .operations import (
     _length,
     _pick_bands,
     _rename_bands,
+    adaptive_mask,
     filter_scenes,
     format_bands,
     select_scenes,
@@ -271,6 +272,26 @@ class ImageStack(
 
         return ImageStack(
             _concat_bands(self, other),
+        )
+
+    def mask(self, mask: ComputeMap) -> ImageStack:
+        """
+        Apply a mask as a delayed object. This call does not
+        mutate `this`
+
+        Parameters
+        ----------
+        mask: ComputeMap
+            Delayed object to use as a mask.
+
+        Returns
+        -------
+        masked: Mosaic
+            Masked mosaic.
+        """
+
+        return ImageStack(
+            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
         )
 
 

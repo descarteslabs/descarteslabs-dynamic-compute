@@ -26,48 +26,11 @@ from .operations import (
     _concat_bands,
     _pick_bands,
     _rename_bands,
+    adaptive_mask,
     create_mosaic,
     format_bands,
     set_cache_id,
 )
-
-
-def adaptive_mask(mask, data):
-    """
-    This function creates a mask for data assuming that the mask may
-    need to be extended to cover more dimensions.  If `data` has more
-    leading dimensions than `mask`, `mask` is extended along those leading
-    dimensions.
-
-    The use case is as follows: Assume we have raster data whose shape is
-    (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
-    whose shape is just (pixel-rows, pixel-cols). This function will extend the
-    mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
-
-    Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
-    this will fail -- we  don't check that present dimensions agree, we only add
-    missing dimensions.
-
-    Parmaters
-    ---------
-    mask: numpy.ndarray
-        Mask to apply
-    data: numpy.ndarray
-        Data to mask
-
-    Returns
-    -------
-    md : numpy.ma.core.MaskedArray
-        Masked array.
-    """
-
-    # Squeeze out the  band dimension if it's a singleton
-    mask = np.squeeze(mask)
-
-    leading_shape = data.shape[: -len(mask.shape)]
-    full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
-
-    return np.ma.masked_where(full_mask, data)
 
 
 class Mosaic(
