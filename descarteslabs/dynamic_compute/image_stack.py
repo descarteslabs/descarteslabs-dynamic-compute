@@ -38,6 +38,8 @@ from .operations import (
     stack_scenes,
 )
 
+AXIS_NAME_TO_INDEX_MAP = {"images": (0,), "bands": (1,), "pixels": (2, 3)}
+
 
 class ImageStack(
     AddMixin,
@@ -315,8 +317,9 @@ def reduction(
     new_obj: Union[Mosaic, ImageStack]
         Reduced object, either a Mosaic if axis is "images" or an ImageStack if axis is "bands"
     """
-
-    if axis not in ["images", "bands"]:
+    try:
+        axis_from_name = AXIS_NAME_TO_INDEX_MAP[axis]
+    except KeyError:
         raise NotImplementedError(
             f"Reductions over {axis} not implemented for ImageStacks"
         )
@@ -349,12 +352,16 @@ def reduction(
     if axis == "bands":
         return ImageStack(
             _apply_unary(
-                obj, lambda a: reducer(a, axis=1)[:, None, ...], prop_func=strip_bands
+                obj,
+                lambda a: reducer(a, axis=axis_from_name)[:, None, ...],
+                prop_func=strip_bands,
             )
         )
-    else:  # axis == images
+    else:  # axis in (images, pixels)
         return Mosaic(
-            _apply_unary(obj, lambda a: reducer(a, axis=0), prop_func=mosaic_props)
+            _apply_unary(
+                obj, lambda a: reducer(a, axis=axis_from_name), prop_func=mosaic_props
+            )
         )
 
 
