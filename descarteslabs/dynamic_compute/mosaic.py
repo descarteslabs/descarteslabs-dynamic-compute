@@ -454,7 +454,7 @@ def band_reduction(
     )
 
 
-# Append band reducers to the Mosaic class as bound methoeds.
+# Append band reducers to the Mosaic class as bound methods.
 Mosaic.sum = lambda mosaic, axis: band_reduction(mosaic, np.sum, axis=axis)
 Mosaic.min = lambda mosaic, axis: band_reduction(mosaic, np.min, axis=axis)
 Mosaic.max = lambda mosaic, axis: band_reduction(mosaic, np.max, axis=axis)
