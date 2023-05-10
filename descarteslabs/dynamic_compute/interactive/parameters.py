@@ -237,7 +237,7 @@ class ParameterSet(traitlets.HasTraits):
     """
     Parameters for a `DynamicComputeLayer`, which updates the layer when new values are assigned.
 
-    A `ParameterSet` is constructed automatically when calling `.Image.visualize` and added to the `DynamicComputeLayer`;
+    A `ParameterSet` is constructed automatically when calling `dc.Mosaic.visualize` and added to the `DynamicComputeLayer`;
     you shouldn't construct one manually.
 
     You can access a widget for interactively controlling these parameters at `widget`.
@@ -248,44 +248,7 @@ class ParameterSet(traitlets.HasTraits):
         A widget showing a table of controls, linked to this `ParameterSet`.
         Updating the controls causes the map to update.
 
-    Example
-    -------
-    >>> import descarteslabs.workflows as wf
-    >>> imgs = wf.ImageCollection.from_id(
-    ...     "sentinel-1:GRD", start_datetime=wf.parameter("start", wf.Datetime)
-    ... )
-    >>> filtered = imgs.filter(lambda img: img.properties['pass'] == wf.parameter("pass_dir", wf.Str))
-    >>> composite = imgs.mean(axis="images").pick_bands("vv")
-    >>> lyr = composite.visualize("vv mean", start=wf.Datetime(2018), pass_dir="ASCENDING")  # doctest: +SKIP
-    >>> params = lyr.parameters  # doctest: +SKIP
-    >>> # ^ get the ParameterSet for the layer
-    >>> params.pass_dir  # doctest: +SKIP
-    "ASCENDING"
-    >>> params.pass_dir = "DESCENDING"  # doctest: +SKIP
-    >>> # ^ this updates the layer on the map
-    >>> params.start = "2019-01-01"  # doctest: +SKIP
-    >>> # ^ as does this
-    >>> params.link("start", my_ipywidget)  # doctest: +SKIP
-    >>> # ^ this links the "start" parameter to an ipywidget's value
 
-    Notes
-    -----
-    The names and types of fields on a `ParameterSet` are fixed,
-    and can only be changed using `update`. This means that on
-    a `ParameterSet` that only has the field ``x``, which holds a float,
-    ``params.x = "foo"`` will fail (wrong type), as will ``params.y = "bar"``
-    (``y`` doesn't exist).
-
-    When `.Image.visualize` creates a `ParameterSet` for you, it adds fields for
-    whichever parameter the imagery depends on. If ``img`` depends on
-    ``wf.widgets.slider("slidey", 0, 1)`` and ``wf.parameter("td", wf.Timedelta)``
-    for example, then ``img.visualize("my layer", td=wf.Timedelta(days=2))``
-    will create the fields ``slidey`` and ``td``. More importantly, it infers the *type*
-    of those fields from their parameter types, so ``slidey`` would only accept floats,
-    and ``td`` would only accept Timedeltas.
-
-    Therefore, if you experience a ``TypeError`` assiging to a `ParameterSet` field,
-    you may need to change types of the initial parameters ``img`` depends on.
     """
 
     def __init__(self, notify_object, notify_name, **traits):
@@ -336,22 +299,6 @@ class ParameterSet(traitlets.HasTraits):
             The name of the attribute on ``target`` to link to.
             Defaults to ``"value"``, since that works for most ipywidgets.
 
-        Example
-        -------
-        >>> import descarteslabs.workflows as wf
-        >>> from ipywidgets import FloatSlider
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> img = img.pick_bands("red") # doctest: +SKIP
-        >>> masked_img = img.mask(img > wf.parameter("threshold", wf.Float)) # doctest: +SKIP
-        >>> layer = masked_img.visualize("sample", colormap="plasma", threshold=0.07) # doctest: +SKIP
-        >>> layer.parameters.link("threshold", my_ipywidget) # doctest: +SKIP
-        >>> # ^ links the "threshold" parameter to an ipywidget's value
-        >>> layer2 = masked_img.visualize("sample", colormap="plasma", threshold=0.3) # doctest: +SKIP
-        >>> layer2.parameters.link("threshold", layer.parameters, attr="threshold") # doctest: +SKIP
-        >>> # ^ now the `threshold` parameter is linked between `layer` and `layer2`
-        >>> widget = FloatSlider(min=0, max=1) # doctest: +SKIP
-        >>> layer2.parameters.link("threshold", widget) # doctest: +SKIP
-        >>> # ^ now `threshold` is linked to the widget, and the link is broken to `layer`
         """
         current_link = self._links.get(name, None)
 
@@ -375,15 +322,6 @@ class ParameterSet(traitlets.HasTraits):
         """
         Key-value pairs of the parameters, in order.
 
-        Example
-        -------
-        >>> import descarteslabs.workflows as wf
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> img = img.pick_bands("red") # doctest: +SKIP
-        >>> masked_img = img.mask(img > wf.parameter("threshold", wf.Float)) # doctest: +SKIP
-        >>> layer = masked_img.visualize("sample", colormap="plasma", threshold=0.07) # doctest: +SKIP
-        >>> layer.parameters.to_dict() # doctest: +SKIP
-        {'threshold': 0.07}
         """
         # return {name: getattr(self, name) for name in self._order}
 

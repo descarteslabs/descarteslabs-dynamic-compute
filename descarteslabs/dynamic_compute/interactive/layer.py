@@ -33,14 +33,14 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
     Attributes
     ----------
-    imagery: ~.geospatial.Image or ~.geospatial.ImageCollection
-        Read-only: the `~.geospatial.Image` or `~.geospatial.ImageCollection` to use.
+    imagery: ~.Mosaic or ~.ImageStack
+        Read-only: the `~.Mosaic` or `~.ImageStack` to use.
         Change it with `set_imagery`.
-    value: ~.geospatial.Image or ~.geospatial.ImageCollection
+    value: ~.Mosaic or ~.ImageStack
         Read-only: a parametrized version of `imagery`, with all the values of `parameters`
         embedded in it.
-    image_value: ~.geospatial.Image
-        Read-only: a parametrized version of `imagery` as an `~.geospatial.Image`,
+    image_value: ~.Mosaic
+        Read-only: a parametrized version of `imagery` as a `~.Mosaic`,
         with any `reduction` applied and all the values of `parameters` embedded in it
     parameters: ParameterSet
         Parameters to use while computing; modify attributes under ``.parameters``
@@ -61,8 +61,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         Name of the colormap to use.
         If set, `imagery` must have 1 band.
     reduction: {"min", "max", "mean", "median", "mosaic", "sum", "std", "count"}
-        If displaying an `~.geospatial.ImageCollection`, this method is used to reduce it
-        into an `~.geospatial.Image`. Reduction is performed before applying a colormap or scaling.
+        If displaying a `~.Mosaic`, this method is used to reduce it
+        into an `~.ImageStack`. Reduction is performed before applying a colormap or scaling.
     r_min: float, optional, default None
         Min value for scaling the red band. Along with r_max,
         controls scaling when a colormap is enabled.
@@ -87,17 +87,26 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
     Example
     -------
-    >>> import descarteslabs.workflows as wf
-    >>> wf.map # doctest: +SKIP
+    >>> import descarteslabs.dynamic_compute as dc
+    >>> m = dc.map # doctest: +SKIP
+    >>> m
     >>> # ^ display interactive map
-    >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1").pick_bands("red")
-    >>> masked_img = img.mask(img > wf.parameter("threshold", wf.Float))
-    >>> layer = masked_img.visualize("sample", colormap="viridis", threshold=0.07) # doctest: +SKIP
-    >>> layer.colormap = "plasma" # doctest: +SKIP
+    >>> spot_rgb = dc.Mosaic.from_product_bands("airbus:oneatlas:spot:v2", # doctest: +SKIP
+                                                "blue", # doctest: +SKIP
+                                                start_datetime="20210101", # doctest: +SKIP
+                                                end_datetime="2022101",)/ 256 # doctest: +SKIP
+    >>> sigma0_vv = dc.ImageStack.from_product_bands("sentinel-1:sar:sigma0v:v1", # doctest: +SKIP
+                                                    "vv", # doctest: +SKIP
+                                                    "20230101", # doctest: +SKIP
+                                                    "20230401") # doctest: +SKIP
+    >>> water_mask = sigma0_vv.min(axis="images") > -20 # doctest: +SKIP
+    >>> water = spot_rgb.mask(water_mask) # doctest: +SKIP
+    >>> water_layer = water.visualize("Water", m, scales=[[0, 1]], colormap="viridis") # doctest: +SKIP
+    >>> water_layer.colormap = "plasma" # doctest: +SKIP
     >>> # ^ change colormap (this will update the layer on the map)
-    >>> layer.parameters.threshold = 0.13 # doctest: +SKIP
+    >>> water_layer.checkerboard = False # doctest: +SKIP
     >>> # ^ adjust parameters (this also updates the layer)
-    >>> layer.set_scales((0.01, 0.3)) # doctest: +SKIP
+    >>> water_layer.set_scales((0.01, 0.3)) # doctest: +SKIP
     >>> # ^ adjust scaling (this also updates the layer)
     """
 
@@ -181,7 +190,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         Parameters
         ----------
         **parameter_overrides: JSON-serializable value, Proxytype, or ipywidgets.Widget
-            Paramter names to values. Values can be Python types,
+            Parameter names to values. Values can be Python types,
             `Proxytype` instances, or ``ipywidgets.Widget`` instances.
             Names must correspond to parameters that ``imagery`` depends on.
 
@@ -240,12 +249,14 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
         Example
         -------
-        >>> import descarteslabs.workflows as wf
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> img = img.pick_bands("red blue green") # doctest: +SKIP
+        >>> import descarteslabs.dynamic_compute as dc
+        >>> img = spot_rgb = dc.Mosaic.from_product_bands("airbus:oneatlas:spot:v2", # doctest: +SKIP
+                                                            "red blue green", # doctest: +SKIP
+                                                            start_datetime="20210101", # doctest: +SKIP
+                                                            end_datetime="2022101",) # doctest: +SKIP
         >>> layer = img.visualize("sample") # doctest: +SKIP
         >>> layer.make_url() # doctest: +SKIP
-        'https://workflows.descarteslabs.com/master/xyz/9ec70d0e99db7f50c856c774809ae454ffd8475816e05c5c/{z}/{x}/{y}.png?session_id=xxx&checkerboard=true'
+        'https://dynamic-compute.descarteslabs.com/layers/9ec70d0e99db7f50c856c774809ae454ffd8475816e05c5c/tile/{z}/{x}/{y}?scales=%5B%5B0.0%2C+1.0%5D%5D&colormap=viridis&checkerboard=False'
         """
         if not self.visible:
             # workaround for the fact that Leaflet still loads tiles from inactive layers,
@@ -312,15 +323,13 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
         Example
         -------
-        >>> import descarteslabs.workflows as wf
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> img = img.pick_bands("red") # doctest: +SKIP
-        >>> layer = img.visualize("sample visualization", colormap="viridis") # doctest: +SKIP
-
-        >>> with layer.hold_url_updates(): # doctest: +SKIP
-        ...     layer.checkerboard = False # doctest: +SKIP
-        ...     layer.set_scales([0, 1], new_colormap="magma") # doctest: +SKIP
-        ...     layer.set_scales([0, 1], new_colormap="magma") # doctest: +SKIP
+        >>> import descarteslabs.dynamic_compute as dc
+        >>> naip = dc.Mosaic.from_product_bands("usda:naip:rgbn:v1", "nir") # doctest: +SKIP
+        >>> naip_layer = naip.visualize("NAIP", m, colormap="viridis") # doctest: +SKIP
+        >>> with naip_layer.hold_url_updates(): # doctest: +SKIP
+                naip_layer.set_scales([[0.2, 1]]) # doctest: +SKIP
+                naip_layer.colormap="plasma" # doctest: +SKIP
+                naip_layer.set_scales([[0.2, 0.7176]]) # doctest: +SKIP
         >>> # ^ the layer will now update only once, instead of 3 times.
         """
         if self._url_updates_blocked:
@@ -419,16 +428,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         """
         Clear the set of known log records, so they are re-displayed if they occur again
 
-        Example
-        -------
-        >>> import descarteslabs.workflows as wf
-        >>> wf.map # doctest: +SKIP
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> layer = img.visualize("sample visualization") # doctest: +SKIP
-        >>> # ^ will show an error for attempting to visualize more than 3 bands
-        >>> layer.forget_logs() # doctest: +SKIP
-        >>> wf.map.zoom = 10 # doctest: +SKIP
-        >>> # ^ attempting to load more tiles from img will cause the same error to appear
         """
         with self._known_logs_lock:
             self._known_logs.clear()
@@ -436,18 +435,6 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     def clear_logs(self):
         """
         Clear any logs currently displayed for this layer
-
-        Example
-        -------
-        >>> import descarteslabs.workflows as wf
-        >>> wf.map # doctest: +SKIP
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> layer = img.visualize("sample visualization") # doctest: +SKIP
-        >>> # ^ will show an error for attempting to visualize more than 3 bands
-        >>> layer.clear_logs() # doctest: +SKIP
-        >>> # ^ the errors will disappear
-        >>> wf.map.zoom = 10 # doctest: +SKIP
-        >>> # ^ attempting to load more tiles from img will cause the same error to appear
         """
         if self.log_output is None:
             return
@@ -466,14 +453,14 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         Parameters
         ----------
         scales: list of lists, default None
-            The scaling to apply to each band in the `Image` or `ImageCollection`.
-            If displaying an `ImageCollection`, it is reduced into an `Image`
+            The scaling to apply to each band in the `Mosaic` or `ImageStack`.
+            If displaying an `ImageStack`, it is reduced into a `Mosaic`
             before applying scaling.
 
-            If `Image` or `ImageCollection` contains 3 bands,
+            If `Mosaic` or `ImageStack` contains 3 bands,
             ``scales`` must be a list like ``[(0, 1), (0, 1), (-1, 1)]``.
 
-            If `Image` or `ImageCollection` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
+            If `Mosaic` or `ImageStack` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
             or just ``(0, 1)`` for convenience
 
             If None, each 256x256 tile will be scaled independently
@@ -483,12 +470,11 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
         Example
         -------
-        >>> import descarteslabs.workflows as wf
-        >>> wf.map # doctest: +SKIP
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1") # doctest: +SKIP
-        >>> img = img.pick_bands("red") # doctest: +SKIP
-        >>> layer = img.visualize("sample visualization", colormap="viridis") # doctest: +SKIP
-        >>> layer.set_scales((0.08, 0.3), new_colormap="plasma") # doctest: +SKIP
+        >>> import descarteslabs.dynamic_compute as dc
+        >>> dc.map # doctest: +SKIP
+        >>> naip = dc.Mosaic.from_product_bands("usda:naip:rgbn:v1", "nir") # doctest: +SKIP
+        >>> naip_layer = naip.visualize("NAIP", m, colormap="viridis") # doctest: +SKIP
+        >>> naip_layer.set_scales((0.08, 0.3), new_colormap="plasma") # doctest: +SKIP
         >>> # ^ optionally set new colormap
         """
         colormap = self.colormap if new_colormap is False else new_colormap
@@ -547,11 +533,11 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
         Example
         -------
-        >>> import descarteslabs.workflows as wf
-        >>> img = wf.Image.from_id("landsat:LC08:PRE:TOAR:meta_LC80330352016022_v1")
-        >>> img = img.pick_bands("red") # doctest: +SKIP
-        >>> layer = img.visualize("sample visualization") # doctest: +SKIP
-        >>> layer.set_scales((0.08, 0.3), 'viridis') # doctest: +SKIP
+        >>> import descarteslabs.dynamic_compute as dc
+        >>> dc.map # doctest: +SKIP
+        >>> naip = dc.Mosaic.from_product_bands("usda:naip:rgbn:v1", "nir") # doctest: +SKIP
+        >>> naip_layer = naip.visualize("NAIP", m, colormap="viridis") # doctest: +SKIP
+        >>> naip_layer.set_scales((0.08, 0.3), new_colormap="plasma") # doctest: +SKIP
         >>> layer.get_scales() # doctest: +SKIP
         [[0.08, 0.3]]
         """

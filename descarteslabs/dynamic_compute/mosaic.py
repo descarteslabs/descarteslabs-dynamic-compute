@@ -70,30 +70,30 @@ class Mosaic(
         **parameter_overrides,
     ):
         """
-        A `.DynamicComputeLayer` for this `Image`.
+        A `.DynamicComputeLayer` for this `Mosaic`.
 
-        Generally, use `Image.visualize` for displaying on map.
+        Generally, use `Mosaic.visualize` for displaying on map.
         Only use this method if you're managing your own ipyleaflet Map instances,
         and creating more custom visualizations.
 
-        An empty  `Image` will be rendered as a checkerboard (default) or blank tile.
+        An empty  `Mosaic` will be rendered as a checkerboard (default) or blank tile.
 
         Parameters
         ----------
         name: str
             The name of the layer.
         scales: list of lists, default None
-            The scaling to apply to each band in the `Image`.
+            The scaling to apply to each band in the `Mosaic`.
 
-            If `Image` contains 3 bands, ``scales`` must be a list like ``[(0, 1), (0, 1), (-1, 1)]``.
+            If `Mosaic` contains 3 bands, ``scales`` must be a list like ``[(0, 1), (0, 1), (-1, 1)]``.
 
-            If `Image` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
+            If `Mosaic` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
             or just ``(0, 1)`` for convenience
 
             If None, each 256x256 tile will be scaled independently.
             based on the min and max values of its data.
         colormap: str, default None
-            The name of the colormap to apply to the `Image`. Only valid if the `Image` has a single band.
+            The name of the colormap to apply to the `Mosaic`. Only valid if the `Mosaic` has a single band.
         checkerboard: bool, default True
             Whether to display a checkerboarded background for missing or masked data.
         log_level: int, default logging.DEBUG
@@ -101,9 +101,9 @@ class Mosaic(
             See https://docs.python.org/3/library/logging.html#logging-levels for valid
             log levels.
         **parameter_overrides: JSON-serializable value, Proxytype, or ipywidgets.Widget
-            Values---or ipywidgets---for any parameters that this `Image` depends on.
+            Values---or ipywidgets---for any parameters that this `Mosaic` depends on.
 
-            If this `Image` depends on ``wf.widgets``, you don't have to pass anything for those---any
+            If this `Mosaic` depends on ``dc.widgets``, you don't have to pass anything for those---any
             widgets it depends on are automatically linked to the layer. However, you can override
             their current values (or widgets) by passing new values (or ipywidget instances) here.
 
@@ -115,13 +115,13 @@ class Mosaic(
             the argument value to change, and the layer to update.
 
             Once these initial argument values are set, they can be modified by assigning to
-            `~.WorkflowsLayer.parameters` on the returned `WorkflowsLayer`.
+            `~.DynamicComputeLayer.parameters` on the returned `DynamicComputeLayer`.
 
             For more information, see the docstring to `ParameterSet`.
 
         Returns
         -------
-        layer: `.WorkflowsLayer`
+        layer: `.DynamicComputeLayer`
         """
         from descarteslabs.dynamic_compute.interactive.layer import DynamicComputeLayer
 

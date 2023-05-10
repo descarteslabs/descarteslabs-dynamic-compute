@@ -442,7 +442,7 @@ class Map(ipyleaflet.Map):
 
     def geocontext(self, resolution=None, shape=None, crs="EPSG:3857"):
         """
-        A Scenes :class:`~descarteslabs.scenes.geocontext.AOI` representing
+        A Scenes :class:`~descarteslabs.geo.AOI` representing
         the current view area and resolution of the map. The ``bounds`` of the
         of the returned geocontext are the current valid bounds of the map viewport.
 
@@ -469,7 +469,7 @@ class Map(ipyleaflet.Map):
 
         Returns
         -------
-        geoctx: descarteslabs.scenes.AOI
+        geoctx: descarteslabs.geo.AOI
         """
         from descarteslabs.geo import AOI
 
