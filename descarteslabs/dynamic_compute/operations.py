@@ -823,4 +823,6 @@ def _geocontext_from_latlon(lat: float, lon: float) -> dl.geo.AOI:
     buffer = SINGLE_POINT_BUFFER_VALUE
     xy = Point(lon, lat)
     bounds = xy.buffer(buffer).bounds
-    return dl.geo.AOI(bounds=bounds, crs=WGS84_CRS, shape=(1, 1), all_touched=True)
+    return dl.geo.AOI(
+        bounds=bounds, crs=WGS84_CRS, shape=(1, 1), all_touched=True, align_pixels=True
+    )

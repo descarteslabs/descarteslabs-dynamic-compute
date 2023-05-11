@@ -1,5 +1,6 @@
 import math
 import textwrap
+from typing import Tuple
 
 import ipyleaflet
 import IPython
@@ -431,7 +432,7 @@ class Map(ipyleaflet.Map):
         """
         self.layers = tuple(lyr for lyr in self.layers if lyr.base)
 
-    def map_dimensions(self):
+    def map_dimensions(self) -> Tuple[float]:
         """
         Width, height of this Map, in pixels.
 
@@ -440,7 +441,7 @@ class Map(ipyleaflet.Map):
         (left, top), (right, bottom) = self.pixel_bounds
         return (math.ceil(bottom - top), math.ceil(right - left))
 
-    def geocontext(self, resolution=None, shape=None, crs="EPSG:3857"):
+    def geocontext(self, resolution=None, shape=None, crs="EPSG:3857") -> dl.geo.AOI:
         """
         A Scenes :class:`~descarteslabs.geo.AOI` representing
         the current view area and resolution of the map. The ``bounds`` of the
@@ -471,7 +472,6 @@ class Map(ipyleaflet.Map):
         -------
         geoctx: descarteslabs.geo.AOI
         """
-        from descarteslabs.geo import AOI
 
         bounds = self.valid_4326_bounds()
         if bounds == [0, 0, 0, 0]:
@@ -508,7 +508,7 @@ class Map(ipyleaflet.Map):
 
             crs = "+proj=utm +zone={} +datum=WGS84 +units=m +no_defs ".format(zone)
 
-        return AOI(
+        return dl.geo.AOI(
             bounds=bounds,
             crs=crs,
             bounds_crs="EPSG:4326",
