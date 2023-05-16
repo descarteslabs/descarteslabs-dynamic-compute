@@ -357,7 +357,10 @@ def reduction(
                 prop_func=strip_bands,
             )
         )
-    else:  # axis in (images, pixels)
+    elif axis == "pixels":
+        # pass through properties from the image stack
+        return Mosaic(_apply_unary(obj, lambda a: reducer(a, axis=axis_from_name)))
+    else:  # axis in (images)
         return Mosaic(
             _apply_unary(
                 obj, lambda a: reducer(a, axis=axis_from_name), prop_func=mosaic_props
