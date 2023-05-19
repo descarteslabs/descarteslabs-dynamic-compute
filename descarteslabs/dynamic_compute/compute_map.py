@@ -83,44 +83,39 @@ class ComputeMap(dict):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
     descended from ComputeMap
+
+    It is natural to apply a binary operation to operands of different types.
+    For example, we may want to add a constant to a subclass of `ComputeMap`.
+    In this case the intent is to add that constant to every value in the array
+    to which the subclass of ComputeMap evaluates. The result of this addition
+    operation should be the subclass of `ComputeMap`.
+
+    It is more complicated when the operands are both subclasses of `ComputeMap`,
+    but neither is a subclass of the other. e.g. `Mosaic` and `ImageStack`. In this
+    case, we apply the operation to the `Mosaic` instance and each image in the
+    `ImageStack` instance. The return value is of type `ImageStack`.
+
+    This logic cannot be inferred by type _relationships_. `ImageStack` and `Mosaic`
+    are both subclasses of `ComputeMap` and neither is descended from the other.
+    Code would require explict reference to types, which if present here would lead
+    to a circular dependency.
+
+    In response, `ComputeMap` and its subclasses provide a `_RETURN_PRECEDENCE` class
+    attribute that allows one to determine which operand type should take precedence
+    for the return type of a binary operation. In particular it supports code like
+
+    ```
+    if t1._RETURN_PRECEDENCE > t2._RETURN_PRECEDENCE:
+        return t1
+
+    return t2
+    ```
+
+    Thereby allowing operations on types without explicit reference to the types.
+    The logic assumes that there is an ordering for subclasses of `ComputeMap`.
     """
 
-    @classmethod
-    def return_precedence(cls):
-        """
-        It is natural to apply a binary operation to operands of different types.
-        For example, we may want to add a constant to a subclass of `ComputeMap`.
-        In this case the intent is to add that constant to every value in the array
-        to which the subclass of ComputeMap evaluates. The result of this addition
-        operation should be the subclass of `ComputeMap`.
-
-        It is more complicated when the operands are both subclasses of `ComputeMap`,
-        but neither is a subclass of the other. e.g. `Mosaic` and `ImageStack`. In this
-        case, we apply the operation to the `Mosaic` instance and each image in the
-        `ImageStack` instance. The return value is of type `ImageStack`.
-
-        This logic cannot be inferred by type _relationships_. `ImageStack` and `Mosaic`
-        are both subclasses of `ComputeMap` and neither is descended from the other.
-        Code would require explict reference to types, which if present here would lead
-        to a circular dependency.
-
-        In response, `ComputeMap` and its subclasses provide a `return_precedence` class
-        method that allows one to determine which operand type should take precedence
-        for the return type of a binary operation. In particular it supports code like
-
-        ```
-        if t1.return_precedence() > t2.return_precedence():
-            return t1
-
-        return t2
-        ```
-
-        Thereby allowing operations on types without explicit reference to the types. The logic
-        assumes that there is an ordering for subclasses of `ComputeMap`, and implementation
-        of `return_precedence` in a new subclass of `ComputeMap` requires
-        """
-
-        return 0
+    _RETURN_PRECEDENCE = 0
 
     def __str__(self):
         obj_str = str(type(self))
@@ -129,7 +124,6 @@ class ComputeMap(dict):
         return obj_str
 
     def __repr__(self):
-
         with Capturing() as output:
             interpret(
                 dict(self),
@@ -247,14 +241,14 @@ def type_max(
     t1: Union[np.ndarray, ComputeMap], t2: Union[np.ndarray, ComputeMap]
 ) -> Union[np.ndarray, ComputeMap]:
     """
-    Return the more general of two types. If either t1 or t2 is a number or array return the other.
-    If neither is a number or array and one is descended from the other return the ancestor type.
-    If neither is a number or array and neither is descended from the other use the return_precedence
-    function.
+    Return the more general of two types. If either t1 or t2 is a number or array
+    return the other. If neither is a number or array and one is descended from
+    the other return the ancestor type. If neither is a number or array and
+    neither is descended from the other use the _RETURN_PRECEDENCE attribute.
 
     This is used in a default implementation for computing the return types of binary
-    operations. This may be insufficient for certain future classes, but can be overridden
-    for classes in which this is the case.
+    operations. This may be insufficient for certain future classes, but can be
+    overridden for classes in which this is the case.
 
     Parameters
     ----------
@@ -274,7 +268,7 @@ def type_max(
     if issubclass(t2, Number) or issubclass(t2, np.ndarray):
         return t1
 
-    if t1.return_precedence() > t2.return_precedence():
+    if t1._RETURN_PRECEDENCE > t2._RETURN_PRECEDENCE:
         return t1
 
     return t2

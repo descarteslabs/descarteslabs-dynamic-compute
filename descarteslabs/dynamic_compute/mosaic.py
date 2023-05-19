@@ -48,13 +48,11 @@ class Mosaic(
     # to be used instead of the default ComputeMap mixins
     ComputeMap,  # Base class
 ):
-    @classmethod
-    def return_precedence(cls):
-        return 1
-
     """
     Class wrapper around mosaic operations
     """
+
+    _RETURN_PRECEDENCE = 1
 
     def __init__(self, g):
         set_cache_id(g)

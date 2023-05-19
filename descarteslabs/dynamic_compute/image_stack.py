@@ -63,12 +63,10 @@ class ImageStack(
     # creating a new "scenes" graft that applies a new filtering operation to the existing
     # "scenes" graft.
     #
-    # The full graft uses the scenes graft to generate an ImageCollcetion and adds a instructions
+    # The full graft uses the scenes graft to generate an ImageCollection and adds a instructions
     # to accesss the raster data.
 
-    @classmethod
-    def return_precedence(cls):
-        return 2
+    _RETURN_PRECEDENCE = 2
 
     def __init__(
         self,
@@ -325,7 +323,6 @@ def reduction(
         )
 
     def strip_bands(props):
-
         props = deepcopy(props)
 
         for d in props:
@@ -335,7 +332,6 @@ def reduction(
         return props
 
     def mosaic_props(props):
-
         props = deepcopy(props)
 
         if isinstance(props, list):
