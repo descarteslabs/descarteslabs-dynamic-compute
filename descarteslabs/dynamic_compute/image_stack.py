@@ -21,6 +21,7 @@ from .compute_map import (
     TrueDivMixin,
     as_compute_map,
 )
+from .dl_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
@@ -52,16 +53,17 @@ class ImageStack(
     CompareMixin,
     ComputeMap,
 ):
-    # This class acts as a proxy for ImageCollections. The steps in evaluating this object are
+    # This class acts as a proxy for ImageCollections. The steps in evaluating
+    # this object are
     # 1. Select scenes
     # 2. Optionally filter scenes
     # 3. Download scenes into an array.
 
-    # Steps 1 and 2 are handled by a "scenes" graft that evaulates to an ImageCollection, not
-    # an array. ImageCollections contain the metadata necessary for filtering, which we want
-    # to do *before* downloading an array. This allows us to compose filtering operations by
-    # creating a new "scenes" graft that applies a new filtering operation to the existing
-    # "scenes" graft.
+    # Steps 1 and 2 are handled by a "scenes" graft that evaulates to an
+    # ImageCollection, not an array. ImageCollections contain the metadata
+    # necessary for filtering, which we want to do *before* downloading an array.
+    #  This allows us to compose filtering operations by creating a new "scenes"
+    #  graft that applies a new filtering operation to the existing "scenes" graft.
     #
     # The full graft uses the scenes graft to generate an ImageCollection and adds a instructions
     # to accesss the raster data.
@@ -78,16 +80,19 @@ class ImageStack(
         end_datetime: Optional[str] = None,
     ):
         """
-        Initialize a new instance of ImageStack. Users should rely on from_product_bands
+        Initialize a new instance of ImageStack. Users should rely on
+        from_product_bands
 
         Parameters
         ----------
         full_graft: Dict
-            Graft, which when evaluated will generate a scenes x bands x rows x cols array
+            Graft, which when evaluated will generate a scenes x bands x rows
+            x cols array
         scenes_graft: Dict
             Graft, which when evaluated will generate an ImageCollection object
         bands: Union[str, List[str]]
-            Bands either as space separated names in a single string or a list of band names
+            Bands either as space separated names in a single string or a list
+            of band names
         product_id: str
             Product id
         start_datetime: Optional[str]
@@ -95,6 +100,7 @@ class ImageStack(
         start_datetime: Optional[str]
             Optional final cutoff for an ImageStack as YYYYMMDD
         """
+
         set_cache_id(full_graft)
         super().__init__(full_graft)
         self.scenes_graft = scenes_graft
@@ -131,6 +137,8 @@ class ImageStack(
             New ImageStack object.
         """
 
+        _ = get_product_or_fail(product_id)
+
         formatted_bands = " ".join(format_bands(bands))
         scenes_graft = select_scenes(
             product_id, formatted_bands, start_datetime, end_datetime
@@ -152,13 +160,15 @@ class ImageStack(
         Parameters
         ----------
         f: Callable[[dl.catalog.Image], bool]
-            Filter function. This function must take a dl.catalog.Image object and return
-            a bool indicating that the image should be retained (True) or excluded (False)
+            Filter function. This function must take a dl.catalog.Image object
+            and return a bool indicating that the image should be retained
+            (True) or excluded (False)
         """
 
         if self.scenes_graft is None:
             raise Exception(
-                "This ImageStack cannot be filtered because it is not derived from an ImageCollection"
+                "This ImageStack cannot be filtered because "
+                "it is not derived from an ImageCollection"
             )
 
         new_scenes_graft = filter_scenes(
@@ -313,7 +323,8 @@ def reduction(
     Returns
     -------
     new_obj: Union[Mosaic, ImageStack]
-        Reduced object, either a Mosaic if axis is "images" or an ImageStack if axis is "bands"
+        Reduced object, either a Mosaic if axis is "images" or an ImageStack
+        if axis is "bands"
     """
     try:
         axis_from_name = AXIS_NAME_TO_INDEX_MAP[axis]
@@ -378,22 +389,26 @@ def dot(
     a: Union[ImageStack, np.ndarray], b: Union[ImageStack, np.ndarray]
 ) -> ImageStack:
     """
-    Specific implementation of dot for ImageStack objects. Either a's type or b's must be ImageStack,
-    or a subclass of ImageStack. The other supported type is numpy.ndarray. This function assumes
-    that ImageStack arguments are proxy objects referring to images by bands by pixel rows by pixel columns,
-    and that the operation will be repeated for each band and pixel. In particular this does not support
-    a ImageStack object that is matrix-per-pixel. The behavior of dot is as follows:
+    Specific implementation of dot for ImageStack objects. Either a's type or b's
+    must be ImageStack, or a subclass of ImageStack. The other supported type is
+    numpy.ndarray. This function assumes that ImageStack arguments are proxy
+    objects referring to images by bands by pixel rows by pixel columns, and
+    that the operation will be repeated for each band and pixel. In particular
+    this does not support a ImageStack object that is matrix-per-pixel.
+    The behavior of dot is as follows:
 
-    1. If both arguments are ImageStacks, or subclasses thereof, return a ImageStack object with a single
-    image containing the inner product along the images of the input ImageStacks. Note that this
-    function cannot detect a dimension mismatch, e.g. dot applied two ImageStacks with differing numbers
+    1. If both arguments are ImageStacks, or subclasses thereof, return a ImageStack
+    object with a single image containing the inner product along the images of
+    the input ImageStacks. Note that this function cannot detect a dimension
+    mismatch, e.g. dot applied two ImageStacks with differing numbers
     of images.
 
-    2. If one argument is a ImageStack and the other argument is a matrix, matrix-vector (or vector matrix)
-    multiplication is performed per pixel. Again, this function cannot check dimension agreement.
+    2. If one argument is a ImageStack and the other argument is a matrix,
+    matrix-vector (or vector matrix) multiplication is performed per pixel.
+    Again, this function cannot check dimension agreement.
 
-    3. If one argument is a ImageStack and the other argument is a vector, perform a dot product
-    along the ImageStack images.
+    3. If one argument is a ImageStack and the other argument is a vector,
+    perform a dot product along the ImageStack images.
 
     Parameters
     ----------
@@ -414,7 +429,8 @@ def dot(
 
     if issubclass(type(a), ImageStack):
         if issubclass(type(b), ImageStack):
-            # ImageStack times ImageStack, multiply and sum along images, and return a Mosaic
+            # ImageStack times ImageStack, multiply and sum along images,
+            # and return a Mosaic
             return Mosaic(
                 _apply_binary(
                     a,
@@ -431,7 +447,8 @@ def dot(
 
             # ImageStack times numpy array
             if len(b.shape) == 2:
-                # ImageStack time matrix -- perform the matrix multiplication along the images.
+                # ImageStack time matrix -- perform the matrix multiplication
+                # along the images.
                 return ImageStack(
                     _apply_binary(
                         a,
@@ -441,7 +458,8 @@ def dot(
                     )
                 )
             elif len(b.shape) == 1:
-                # ImageStack time vector -- perform a dot product along the image band, return a Mosaic.
+                # ImageStack time vector -- perform a dot product along the
+                # image band, return a Mosaic.
                 return Mosaic(
                     _apply_binary(
                         a,
@@ -461,7 +479,8 @@ def dot(
 
         # numpy array times ImageStack
         if len(a.shape) == 2:
-            # Matrix times ImageStack -- perform the matrix multiplication along the bands.
+            # Matrix times ImageStack -- perform the matrix multiplication
+            # along the bands.
             return ImageStack(
                 _apply_binary(
                     as_compute_map(a),
@@ -471,7 +490,8 @@ def dot(
                 )
             )
         elif len(a.shape) == 1:
-            # ImageStack time vector -- perform a dot product along the image band, return a Mosaic.
+            # ImageStack time vector -- perform a dot product along the image
+            # band, return a Mosaic.
             return Mosaic(
                 _apply_binary(
                     as_compute_map(a),

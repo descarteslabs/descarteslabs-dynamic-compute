@@ -20,6 +20,7 @@ from .compute_map import (
     TrueDivMixin,
     as_compute_map,
 )
+from .dl_utils import get_product_or_fail
 from .operations import (
     _apply_binary,
     _apply_unary,
@@ -83,7 +84,8 @@ class Mosaic(
         scales: list of lists, default None
             The scaling to apply to each band in the `Mosaic`.
 
-            If `Mosaic` contains 3 bands, ``scales`` must be a list like ``[(0, 1), (0, 1), (-1, 1)]``.
+            If `Mosaic` contains 3 bands, ``scales`` must be a list like
+            ``[(0, 1), (0, 1), (-1, 1)]``.
 
             If `Mosaic` contains 1 band, ``scales`` must be a list like ``[(0, 1)]``,
             or just ``(0, 1)`` for convenience
@@ -91,29 +93,33 @@ class Mosaic(
             If None, each 256x256 tile will be scaled independently.
             based on the min and max values of its data.
         colormap: str, default None
-            The name of the colormap to apply to the `Mosaic`. Only valid if the `Mosaic` has a single band.
+            The name of the colormap to apply to the `Mosaic`. Only valid if the
+             `Mosaic` has a single band.
         checkerboard: bool, default True
             Whether to display a checkerboarded background for missing or masked data.
         log_level: int, default logging.DEBUG
-            Only listen for log records at or above this log level during tile computation.
-            See https://docs.python.org/3/library/logging.html#logging-levels for valid
-            log levels.
+            Only listen for log records at or above this log level during tile
+            computation. See https://docs.python.org/3/library/logging.html#logging-levels
+             for valid log levels.
         **parameter_overrides: JSON-serializable value, Proxytype, or ipywidgets.Widget
             Values---or ipywidgets---for any parameters that this `Mosaic` depends on.
 
-            If this `Mosaic` depends on ``dc.widgets``, you don't have to pass anything for those---any
-            widgets it depends on are automatically linked to the layer. However, you can override
-            their current values (or widgets) by passing new values (or ipywidget instances) here.
+            If this `Mosaic` depends on ``dc.widgets``, you don't have to pass anything
+            for those---any widgets it depends on are automatically linked to the
+            layer. However, you can override their current values (or widgets)
+            by passing new values (or ipywidget instances) here.
 
             Values can be given as Proxytypes, or as Python objects like numbers,
             lists, and dicts that can be promoted to them.
             These arguments cannot depend on any parameters.
 
-            If an ``ipywidgets.Widget`` is given, it's automatically linked, so updating the widget causes
-            the argument value to change, and the layer to update.
+            If an ``ipywidgets.Widget`` is given, it's automatically linked, so
+            updating the widget causes the argument value to change, and the
+            layer to update.
 
-            Once these initial argument values are set, they can be modified by assigning to
-            `~.DynamicComputeLayer.parameters` on the returned `DynamicComputeLayer`.
+            Once these initial argument values are set, they can be modified by
+            assigning to `~.DynamicComputeLayer.parameters` on the returned
+            `DynamicComputeLayer`.
 
             For more information, see the docstring to `ParameterSet`.
 
@@ -152,6 +158,9 @@ class Mosaic(
         m: Mosaic
             New mosaic object.
         """
+
+        _ = get_product_or_fail(product_id)
+
         formatted_bands = " ".join(format_bands(bands))
         return Mosaic(create_mosaic(product_id, formatted_bands, **kwargs))
 
@@ -463,22 +472,24 @@ Mosaic.argmax = lambda mosaic, axis: band_reduction(mosaic, np.argmax, axis=axis
 
 def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
     """
-    Specific implementation of dot for Mosaic objects. Either a's type or b's must be Mosaic,
-    or a subclass of Mosaic. The other supported type is numpy.ndarray. This function assumes
-    that Mosaic arguments are proxy objects referring to bands by pixel rows by pixel columns,
-    and that the operation will be repeated for each pixel. In particular this does not support
+    Specific implementation of dot for Mosaic objects. Either a's type or b's
+    must be Mosaic, or a subclass of Mosaic. The other supported type is
+    numpy.ndarray. This function assumes that Mosaic arguments are proxy objects
+    referring to bands by pixel rows by pixel columns, and that the operation
+    will be repeated for each pixel. In particular this does not support
     a Mosaic object that is matrix-per-pixel. The behavior of dot is as follows:
 
-    1. If both arguments are Mosaics, or subclasses thereof, return a Mosaic object with a single
-    band containing the inner product along the bands of the input Mosaics. Note that this
-    function cannot detect a dimension mismatch, e.g. dot applied two mosaics with differing numbers
-    of bands.
+    1. If both arguments are Mosaics, or subclasses thereof, return a Mosaic object
+    with a single band containing the inner product along the bands of the input
+    Mosaics. Note that this function cannot detect a dimension mismatch, e.g.
+    dot applied two mosaics with differing numbers of bands.
 
-    2. If one argument is a Mosaic and the other argument is a matrix, matrix-vector (or vector matrix)
-    multiplication is performed per pixel. Again, this function cannot check dimension agreement.
+    2. If one argument is a Mosaic and the other argument is a matrix, matrix-vector
+    (or vector matrix) multiplication is performed per pixel. Again, this
+    function cannot check dimension agreement.
 
-    3. If one argument is a Mosaic and the other argument is a vector, perform a dot product
-    along the mosaic bands.
+    3. If one argument is a Mosaic and the other argument is a vector, perform a
+    dot product along the mosaic bands.
 
     Parameters
     ----------
@@ -499,7 +510,8 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
 
     if issubclass(type(a), Mosaic):
         if issubclass(type(b), Mosaic):
-            # Mosaic times mosaic, multiply and sum along bands, then replace the band dimension.
+            # Mosaic times mosaic, multiply and sum along bands, then replace
+            # the band dimension.
             return Mosaic(
                 _apply_binary(
                     a,
@@ -516,7 +528,8 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
 
             # Mosaic times numpy array
             if len(b.shape) == 2:
-                # Mosaic time matrix -- perform the matrix multiplication along the bands.
+                # Mosaic time matrix -- perform the matrix multiplication along
+                # the bands.
                 return Mosaic(
                     _apply_binary(
                         a,
@@ -526,7 +539,8 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     )
                 )
             elif len(b.shape) == 1:
-                # Mosaic time vector -- perform the matrix multiplication along the bands.
+                # Mosaic time vector -- perform the matrix multiplication
+                # along the bands.
                 return Mosaic(
                     _apply_binary(
                         a,
