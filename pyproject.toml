@@ -17,7 +17,7 @@ utm = "^0.7.0"
 pyproj = "^3.4.1"
 geojson = ">=2.5.0"
 numpy = "<=1.24.2"
-descarteslabs = {url = "https://github.com/descarteslabs/descarteslabs-python/archive/refs/tags/v2.0.0rc3.zip#egg=descarteslabs"}
+descarteslabs = {url = "https://github.com/descarteslabs/descarteslabs-python/archive/refs/tags/v2.0.0rc4.zip#egg=descarteslabs"}
 cloudpickle = "1.6.0"
 
 

@@ -403,13 +403,13 @@ files = [
 
 [[package]]
 name = "descarteslabs"
-version = "2.0.0rc3"
+version = "2.0.0rc4"
 description = "Descartes Labs Python Client"
 category = "main"
 optional = false
 python-versions = "~=3.7"
 files = [
-    {file = "v2.0.0rc3.zip", hash = "sha256:aa6b3846bd6c2b6f4e37283666ac6b47caf2e45c7dabc2f5d8cc55eff61ec6c3"},
+    {file = "v2.0.0rc4.zip", hash = "sha256:b54ef7bbf14dac49697f1602e4045602d61b5ba314eb5e5964dc349e019b7ddd"},
 ]
 
 [package.dependencies]
@@ -431,6 +431,7 @@ shapely = ">=1.8.1"
 strenum = ">=0.4.8"
 tifffile = "2021.4.8"
 tqdm = ">=4.32.1"
+urllib3 = ">=1.26.12,<2"
 
 [package.extras]
 complete = ["matplotlib (>=3.1.2)"]
@@ -439,7 +440,7 @@ visualization = ["matplotlib (>=3.1.2)"]
 
 [package.source]
 type = "url"
-url = "https://github.com/descarteslabs/descarteslabs-python/archive/refs/tags/v2.0.0rc3.zip#egg=descarteslabs"
+url = "https://github.com/descarteslabs/descarteslabs-python/archive/refs/tags/v2.0.0rc4.zip#egg=descarteslabs"
 [[package]]
 name = "dill"
 version = "0.3.6"
@@ -1664,21 +1665,20 @@ files = [
 
 [[package]]
 name = "urllib3"
-version = "2.0.2"
+version = "1.26.16"
 description = "HTTP library with thread-safe connection pooling, file post, and more."
 category = "main"
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*, !=3.5.*"
 files = [
-    {file = "urllib3-2.0.2-py3-none-any.whl", hash = "sha256:d055c2f9d38dc53c808f6fdc8eab7360b6fdbbde02340ed25cfbcd817c62469e"},
-    {file = "urllib3-2.0.2.tar.gz", hash = "sha256:61717a1095d7e155cdb737ac7bb2f4324a858a1e2e6466f6d03ff630ca68d3cc"},
+    {file = "urllib3-1.26.16-py2.py3-none-any.whl", hash = "sha256:8d36afa7616d8ab714608411b4a3b13e58f463aee519024578e062e141dce20f"},
+    {file = "urllib3-1.26.16.tar.gz", hash = "sha256:8f135f6502756bde6b2a9b28989df5fbe87c9970cecaa69041edcce7f0589b14"},
 ]
 
 [package.extras]
-brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)"]
-secure = ["certifi", "cryptography (>=1.9)", "idna (>=2.0.0)", "pyopenssl (>=17.1.0)", "urllib3-secure-extra"]
-socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
-zstd = ["zstandard (>=0.18.0)"]
+brotli = ["brotli (>=1.0.9)", "brotlicffi (>=0.8.0)", "brotlipy (>=0.6.0)"]
+secure = ["certifi", "cryptography (>=1.3.4)", "idna (>=2.0.0)", "ipaddress", "pyOpenSSL (>=0.14)", "urllib3-secure-extra"]
+socks = ["PySocks (>=1.5.6,!=1.5.7,<2.0)"]
 
 [[package]]
 name = "utm"
@@ -1746,4 +1746,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.10"
-content-hash = "3f2790a4e9465a4fba2290262ad8d44bdfa05ad8abe94f1523664571028a3a10"
+content-hash = "9743700013a5d12c613814c53dc74689a5bdf49630eef218dfde54a601a2e39e"

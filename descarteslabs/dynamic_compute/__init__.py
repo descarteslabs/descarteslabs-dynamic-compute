@@ -1,3 +1,4 @@
+from .blob import delete_blob_in_catalog, list_catalog_blobs, share_catalog_blob
 from .compute_map import (
     arccos,
     arcsin,
@@ -25,6 +26,9 @@ __all__ = [
     "compute_aoi",
     "create_aoi",
     "create_layer",
+    "share_catalog_blob",
+    "list_catalog_blobs",
+    "delete_blob_in_catalog",
     "dot",
     "e",
     "create_mosaic",
