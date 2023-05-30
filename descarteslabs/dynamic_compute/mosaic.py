@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import datetime
 import json
 import logging
 from numbers import Number
@@ -20,6 +21,7 @@ from .compute_map import (
     TrueDivMixin,
     as_compute_map,
 )
+from .datetime_utils import normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
 from .operations import (
     _apply_binary,
@@ -141,7 +143,11 @@ class Mosaic(
 
     @staticmethod
     def from_product_bands(
-        product_id: str, bands: Union[str, List[str]], **kwargs
+        product_id: str,
+        bands: Union[str, List[str]],
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        **kwargs,
     ) -> Mosaic:
         """
         Create a new Mosaic object
@@ -152,6 +158,11 @@ class Mosaic(
             ID of the product from which we want to access data
         bands: Union[str, List[str]]
             A space-separated list of bands within the product, or a list of strings.
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]
+            Start date for mosaic
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]
+            End date for mosaic
+
 
         Returns
         -------
@@ -162,7 +173,15 @@ class Mosaic(
         _ = get_product_or_fail(product_id)
 
         formatted_bands = " ".join(format_bands(bands))
-        return Mosaic(create_mosaic(product_id, formatted_bands, **kwargs))
+        return Mosaic(
+            create_mosaic(
+                product_id,
+                formatted_bands,
+                start_datetime=normalize_datetime_or_none(start_datetime),
+                end_datetime=normalize_datetime_or_none(end_datetime),
+                **kwargs,
+            )
+        )
 
     def pick_bands(self, bands: Union[str, List[str]]) -> Mosaic:
         """

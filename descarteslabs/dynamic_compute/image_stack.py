@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import datetime
 import json
 from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -21,6 +22,7 @@ from .compute_map import (
     TrueDivMixin,
     as_compute_map,
 )
+from .datetime_utils import normalize_datetime, normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
@@ -76,8 +78,8 @@ class ImageStack(
         scenes_graft: Optional[Dict] = None,
         bands: Optional[Union[str, List[str]]] = None,
         product_id: Optional[str] = None,
-        start_datetime: Optional[str] = None,
-        end_datetime: Optional[str] = None,
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
     ):
         """
         Initialize a new instance of ImageStack. Users should rely on
@@ -95,10 +97,10 @@ class ImageStack(
             of band names
         product_id: str
             Product id
-        start_datetime: Optional[str]
-            Optional initial cutoff for an ImageStack as YYYYMMDD
-        start_datetime: Optional[str]
-            Optional final cutoff for an ImageStack as YYYYMMDD
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+            Optional initial cutoff for an ImageStack
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+            Optional final cutoff for an ImageStack
         """
 
         set_cache_id(full_graft)
@@ -106,15 +108,15 @@ class ImageStack(
         self.scenes_graft = scenes_graft
         self.bands = bands
         self.product_id = str(product_id)
-        self.start_datetime = start_datetime
-        self.end_datetime = end_datetime
+        self.start_datetime = normalize_datetime_or_none(start_datetime)
+        self.end_datetime = normalize_datetime_or_none(end_datetime)
 
     @staticmethod
     def from_product_bands(
         product_id: str,
         bands: Union[str, List[str]],
-        start_datetime: str,
-        end_datetime: str,
+        start_datetime: Union[str, datetime.date, datetime.datetime],
+        end_datetime: Union[str, datetime.date, datetime.datetime],
         **kwargs,
     ) -> ImageStack:
         """
@@ -126,9 +128,9 @@ class ImageStack(
             ID of the product from which we want to access data
         bands: Union[str, List[str]]
             A space-separated list of bands within the product, or a list of strings.
-        start_datetime: str
+        start_datetime: Union[str, datetime.date, datetime.datetime]
             Start date for image stack
-        end_datetime: str
+        end_datetime: Union[str, datetime.date, datetime.datetime]
             End date for image stack
 
         Returns
@@ -138,6 +140,8 @@ class ImageStack(
         """
 
         _ = get_product_or_fail(product_id)
+        start_datetime = normalize_datetime(start_datetime)
+        end_datetime = normalize_datetime(end_datetime)
 
         formatted_bands = " ".join(format_bands(bands))
         scenes_graft = select_scenes(
