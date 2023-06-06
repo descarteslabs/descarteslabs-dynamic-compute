@@ -1,12 +1,10 @@
 from __future__ import annotations
 
-import base64
 import datetime
 import json
 from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
-import cloudpickle
 import descarteslabs as dl
 import numpy as np
 
@@ -24,6 +22,7 @@ from .compute_map import (
 )
 from .datetime_utils import normalize_datetime, normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
+from .groupby import ImageStackGroupBy
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
@@ -34,8 +33,10 @@ from .operations import (
     _pick_bands,
     _rename_bands,
     adaptive_mask,
+    encode_function,
     filter_scenes,
     format_bands,
+    groupby,
     select_scenes,
     set_cache_id,
     stack_scenes,
@@ -164,9 +165,13 @@ class ImageStack(
         Parameters
         ----------
         f: Callable[[dl.catalog.Image], bool]
-            Filter function. This function must take a dl.catalog.Image object
-            and return a bool indicating that the image should be retained
-            (True) or excluded (False)
+            Filter function. This function must take a dl.catalog.Image object and return
+            a bool indicating that the image should be retained (True) or excluded (False)
+
+        Returns
+        -------
+        ImageStack
+            New ImageStack object.
         """
 
         if self.scenes_graft is None:
@@ -175,9 +180,7 @@ class ImageStack(
                 "it is not derived from an ImageCollection"
             )
 
-        new_scenes_graft = filter_scenes(
-            self.scenes_graft, base64.b64encode(cloudpickle.dumps(f)).decode("utf-8")
-        )
+        new_scenes_graft = filter_scenes(self.scenes_graft, encode_function(f))
 
         return ImageStack(
             stack_scenes(new_scenes_graft, self.bands),
@@ -308,9 +311,79 @@ class ImageStack(
             _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
         )
 
+    def groupby(
+        self: ImageStack, grouper: Callable[[np.ndarray], np.ndarray]
+    ) -> ImageStackGroupBy:
+        """
+        Perform a grouping function over either images or bands and return an ImageStackGroupBy object.
+
+        Parameters
+        ----------
+        self: ImageStack
+            ImageStack to be grouped
+        grouper: Callable[[np.ndarray], np.ndarray]
+            Function to pick out the values to group by
+
+        Returns
+        -------
+        ImageStackGroupBy object.
+
+        Example
+        -------
+        >>> import descarteslabs.dynamic_compute as dc # doctest: +SKIP
+        >>> m = dc.map # doctest: +SKIP
+        >>> m # doctest: +SKIP
+        >>> sigma0_vv = dc.ImageStack.from_product_bands( # doctest: +SKIP
+                "esa:sentinel-1:sigma0v:v1", "vv", "20230101", "20230401" # doctest: +SKIP
+            ) # doctest: +SKIP
+        >>> # group by acquired month
+        >>> grouped_sigma = sigma0_vv.groupby(lambda x: x.acquired.month) # doctest: +SKIP
+        >>> # loop through each grouping, applying a max reducer and visualize it on the map
+        >>> for group_name, image_stack in grouped_sigma.compute(m.geocontext()): # doctest: +SKIP
+                image_stack.max(axis="images").visualize(str(group_name), m, colormap="turbo") # doctest: +SKIP
+
+        """
+        if self.scenes_graft is None:
+            raise Exception(
+                "This ImageStack cannot be grouped because it is not derived from an ImageCollection"
+            )
+
+        encoded_grouper = encode_function(grouper)
+        groups = groupby(self.scenes_graft, encoded_grouper)
+
+        return ImageStackGroupBy(self, groups)
+
+    def reduce(
+        self, reducer: Callable[[np.ndarray], np.ndarray], axis: str = "images"
+    ) -> Union[Mosaic, ImageStack]:
+        """
+        Perform a reduction over either images or bands. Note that this does not mutate self.
+
+        Parameters
+        ----------
+        self: ImageStack
+            ImageStack to be reduced
+        reducer: Callable[[np.ndarray], np.ndarray]
+            Function to perform the reduction
+        axis: str
+            Axis over which to reduce, either "bands" or "images"
+
+        Returns
+        -------
+        new_obj: Union[Mosaic, ImageStack]
+            Reduced object, either a Mosaic if axis is "images" or an ImageStack
+            if axis is "bands"
+        """
+        return reduction(self, reducer, axis)
+
+    def visualize(*args, **kwargs):
+        raise NotImplementedError(
+            "ImageStacks cannot be visualized. You must reduce this to a Mosaic before calling visualize."
+        )
+
 
 def reduction(
-    obj: ImageStack, reducer: Callable[[np.ndarry], np.ndarray], axis: str = "images"
+    obj: ImageStack, reducer: Callable[[np.ndarray], np.ndarray], axis: str = "images"
 ) -> Union[Mosaic, ImageStack]:
     """
     Perform a reduction over either images or bands. Note that this does not mutate obj.
@@ -319,7 +392,7 @@ def reduction(
     ----------
     obj: ImageStack
         ImageStack to be reduced
-    reducer: Callable[[np.ndarry], np.ndarray]
+    reducer: Callable[[np.ndarray], np.ndarray]
         Function to perform the reduction
     axis: str
         Axis over which to reduce, either "bands" or "images"

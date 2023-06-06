@@ -14,6 +14,7 @@ from .compute_map import (
     tan,
 )
 from .dot import dot
+from .groupby import ImageStackGroupBy
 from .image_stack import ImageStack
 from .interactive import map
 from .mosaic import Mosaic
@@ -37,5 +38,6 @@ __all__ = [
     "log10",
     "Mosaic",
     "ImageStack",
+    "ImageStackGroupBy",
     "map",
 ]

@@ -33,11 +33,15 @@ def operation(func: Callable):
 
     @functools.wraps(func)
     def wrapper_operation(*args, **kwargs):
-        encoded_func = base64.b64encode(cloudpickle.dumps(func)).decode("utf-8")
+        encoded_func = encode_function(func)
         graft = graft_client.apply_graft("code", encoded_func, *args, **kwargs)
         return graft
 
     return wrapper_operation
+
+
+def encode_function(func: Callable) -> str:
+    return base64.b64encode(cloudpickle.dumps(func)).decode("utf-8")
 
 
 def format_bands(bands: Union[str, List[str]]) -> List[str]:
@@ -682,6 +686,10 @@ def stack_scenes(scenes_graft: Dict, bands: str) -> Dict:
 
     """
     return graft_client.apply_graft("stack_scenes", scenes_graft, bands)
+
+
+def groupby(scenes_graft: Dict, encoded_key_func: str):
+    return graft_client.apply_graft("groupby", scenes_graft, encoded_key_func)
 
 
 def compute_aoi(
