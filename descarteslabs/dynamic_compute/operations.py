@@ -262,7 +262,6 @@ def _apply_binary(
 
 @operation
 def _pick_bands(arr, bands, args_props, **kwargs):
-
     bands = json.loads(bands)
     properties = deepcopy(args_props[0])
 
@@ -307,7 +306,6 @@ def _pick_bands(arr, bands, args_props, **kwargs):
 
 @operation
 def _rename_bands(arr, bands, args_props, **kwargs):
-
     # Parse the renamed bands from JSON
     bands = json.loads(bands)
     properties = deepcopy(args_props[0])
@@ -355,7 +353,6 @@ def _concat_bands(arr0, arr1, args_props, **kwargs):
     properties1 = deepcopy(args_props[1])
 
     def _concat_props(props0, props1, arr0, arr1):
-
         if "bands" in props0.keys():
             bands0 = props0["bands"]
         else:

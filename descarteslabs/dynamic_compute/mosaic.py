@@ -4,7 +4,7 @@ import datetime
 import json
 import logging
 from numbers import Number
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import ipyleaflet
 import numpy as np
@@ -37,7 +37,6 @@ from .operations import (
 
 
 class Mosaic(
-    # Supported operations as mix-ins
     AddMixin,
     SubMixin,
     MulMixin,
@@ -46,9 +45,6 @@ class Mosaic(
     SignedMixin,
     ExpMixin,
     CompareMixin,
-    # Note: ComputeMap has default comparison operators. We need to
-    # list CompareMixin before ComputeMap for CompareMixin operations
-    # to be used instead of the default ComputeMap mixins
     ComputeMap,  # Base class
 ):
     """
@@ -57,9 +53,39 @@ class Mosaic(
 
     _RETURN_PRECEDENCE = 1
 
-    def __init__(self, g):
-        set_cache_id(g)
-        super().__init__(g)
+    def __init__(
+        self,
+        graft: Dict,
+        bands: Optional[Union[str, List[str]]] = None,
+        product_id: Optional[str] = None,
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+    ):
+        """
+        Initialize a new instance of Mosaic. Users should rely on
+        from_product_bands
+
+        Parameters
+        ----------
+        graft: Dict
+            Graft, which when evaluated will generate a bands x rows x cols array
+        bands: Union[str, List[str]]
+            Bands either as space separated names in a single string or a list
+            of band names
+        product_id: str
+            Product id
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+            Optional initial cutoff
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+            Optional final cutoff
+        """
+
+        set_cache_id(graft)
+        super().__init__(graft)
+        self.bands = bands
+        self.product_id = str(product_id)
+        self.start_datetime = normalize_datetime_or_none(start_datetime)
+        self.end_datetime = normalize_datetime_or_none(end_datetime)
 
     def tile_layer(
         self,
@@ -172,13 +198,12 @@ class Mosaic(
 
         _ = get_product_or_fail(product_id)
 
-        formatted_bands = " ".join(format_bands(bands))
         return Mosaic(
             create_mosaic(
                 product_id,
-                formatted_bands,
-                start_datetime=normalize_datetime_or_none(start_datetime),
-                end_datetime=normalize_datetime_or_none(end_datetime),
+                " ".join(format_bands(bands)),
+                normalize_datetime_or_none(start_datetime),
+                normalize_datetime_or_none(end_datetime),
                 **kwargs,
             )
         )
@@ -306,7 +331,6 @@ class Mosaic(
         map: ipyleaflet.leaflet.Map,
         colormap: Optional[str] = None,
         scales: Optional[List[List]] = None,
-        # scales: Optional[list] = None,
         checkerboard=True,
         **parameter_overrides,
     ) -> ipyleaflet.leaflet.TileLayer:
@@ -355,90 +379,6 @@ class Mosaic(
             )
             map.add_layer(layer)
             return layer
-
-    _colormaps = [
-        "viridis",
-        "plasma",
-        "inferno",
-        "magma",
-        "cividis",
-        "Greys",
-        "Purples",
-        "Blues",
-        "Greens",
-        "Oranges",
-        "Reds",
-        "YlOrBr",
-        "YlOrRd",
-        "OrRd",
-        "PuRd",
-        "RdPu",
-        "BuPu",
-        "GnBu",
-        "PuBu",
-        "YlGnBu",
-        "PuBuGn",
-        "BuGn",
-        "YlGn",
-        "binary",
-        "gist_yarg",
-        "gist_gray",
-        "gray",
-        "bone",
-        "pink",
-        "spring",
-        "summer",
-        "autumn",
-        "winter",
-        "cool",
-        "Wistia",
-        "hot",
-        "afmhot",
-        "gist_heat",
-        "copper",
-        "PiYG",
-        "PRGn",
-        "BrBG",
-        "PuOr",
-        "RdGy",
-        "RdBu",
-        "RdYlBu",
-        "RdYlGn",
-        "Spectral",
-        "coolwarm",
-        "bwr",
-        "seismic",
-        "hsv",
-        "Pastel1",
-        "Pastel2",
-        "Paired",
-        "Accent",
-        "Dark2",
-        "Set1",
-        "Set2",
-        "Set3",
-        "tab10",
-        "tab20",
-        "tab20b",
-        "tab20c",
-        "flag",
-        "prism",
-        "ocean",
-        "gist_earth",
-        "terrain",
-        "gist_stern",
-        "gnuplot",
-        "gnuplot2",
-        "CMRmap",
-        "cubehelix",
-        "brg",
-        "gist_rainbow",
-        "rainbow",
-        "jet",
-        "nipy_spectral",
-        "gist_ncar",
-        "turbo",
-    ]
 
 
 def band_reduction(

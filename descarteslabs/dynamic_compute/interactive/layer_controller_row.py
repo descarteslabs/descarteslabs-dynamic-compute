@@ -6,7 +6,7 @@ import numpy as np
 import traitlets
 from ipyleaflet import TileLayer
 
-from ..mosaic import Mosaic
+from .colormaps import COLORMAPS
 from .layer import DynamicComputeLayer
 from .map_ import Map
 
@@ -239,7 +239,7 @@ class DynamicComputeLayerControllerRow(LayerControllerRow):
         self._widgets["scales"] = [r_min, r_max, g_min, g_max, b_min, b_max]
 
         colormap = widgets.Dropdown(
-            options=[None] + Mosaic._colormaps,
+            options=[None] + COLORMAPS,
             value=layer.colormap,
             layout=widgets.Layout(width="initial", max_width="10.6em"),
         )
