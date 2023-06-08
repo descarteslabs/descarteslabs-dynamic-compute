@@ -587,6 +587,116 @@ class LogicalMixin:
         )
 
 
+class NumpyReductionMixin:
+    def max(self, axis):
+        """
+         Apply np.ma.max to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.max,
+            axis,
+        )
+
+    def mean(self, axis):
+        """
+         Apply np.ma.mean to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.mean,
+            axis,
+        )
+
+    def median(self, axis):
+        """
+         Apply np.ma.median to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.median,
+            axis,
+        )
+
+    def min(self, axis):
+        """
+         Apply np.ma.min to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.min,
+            axis,
+        )
+
+    def sum(self, axis):
+        """
+         Apply np.ma.sum to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.sum,
+            axis,
+        )
+
+    def std(self, axis):
+        """
+         Apply np.ma.std to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+
+        Returns:
+            ComputeMap
+        """
+        return self.reduce(
+            np.ma.std,
+            axis,
+        )
+
+    def argmax(self, axis):
+        """
+            Apply np.ma.sum to the ComputeMap
+
+        Args:
+            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+            If called on an ImageStack, must be in ["bands", "images"]
+
+        Returns:
+            Mosaic
+        """
+        if axis not in ["bands", "images"]:
+            raise NotImplementedError(f"argmax reduction over {axis} not implemented")
+        return self.reduce(
+            np.ma.argmax,
+            axis,
+        )
+
+
 #
 # generator for functional operations
 #

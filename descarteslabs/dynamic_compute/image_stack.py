@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import json
-from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import descarteslabs as dl
@@ -15,6 +14,7 @@ from .compute_map import (
     ExpMixin,
     FloorDivMixin,
     MulMixin,
+    NumpyReductionMixin,
     SignedMixin,
     SubMixin,
     TrueDivMixin,
@@ -26,7 +26,6 @@ from .groupby import ImageStackGroupBy
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
-    _apply_unary,
     _concat_bands,
     _index,
     _length,
@@ -41,6 +40,7 @@ from .operations import (
     set_cache_id,
     stack_scenes,
 )
+from .reductions import reduction
 
 AXIS_NAME_TO_INDEX_MAP = {"images": (0,), "bands": (1,), "pixels": (2, 3)}
 
@@ -54,6 +54,7 @@ class ImageStack(
     SignedMixin,
     ExpMixin,
     CompareMixin,
+    NumpyReductionMixin,
     ComputeMap,
 ):
     # This class acts as a proxy for ImageCollections. The steps in evaluating
@@ -380,86 +381,6 @@ class ImageStack(
         raise NotImplementedError(
             "ImageStacks cannot be visualized. You must reduce this to a Mosaic before calling visualize."
         )
-
-
-def reduction(
-    obj: ImageStack, reducer: Callable[[np.ndarray], np.ndarray], axis: str = "images"
-) -> Union[Mosaic, ImageStack]:
-    """
-    Perform a reduction over either images or bands. Note that this does not mutate obj.
-
-    Parameters
-    ----------
-    obj: ImageStack
-        ImageStack to be reduced
-    reducer: Callable[[np.ndarray], np.ndarray]
-        Function to perform the reduction
-    axis: str
-        Axis over which to reduce, either "bands" or "images"
-
-    Returns
-    -------
-    new_obj: Union[Mosaic, ImageStack]
-        Reduced object, either a Mosaic if axis is "images" or an ImageStack
-        if axis is "bands"
-    """
-    try:
-        axis_from_name = AXIS_NAME_TO_INDEX_MAP[axis]
-    except KeyError:
-        raise NotImplementedError(
-            f"Reductions over {axis} not implemented for ImageStacks"
-        )
-
-    def strip_bands(props):
-        props = deepcopy(props)
-
-        for d in props:
-            if "bands" in d:
-                d.pop("bands")
-
-        return props
-
-    def mosaic_props(props):
-        props = deepcopy(props)
-
-        if isinstance(props, list):
-            if not len(props):
-                return {}
-            props = props[0]
-
-        return {
-            "bands": props.get("bands", []),
-            "pad": props.get("pad", 0),
-            "product_id": props.get("product_id", ""),
-        }
-
-    if axis == "bands":
-        return ImageStack(
-            _apply_unary(
-                obj,
-                lambda a: reducer(a, axis=axis_from_name)[:, None, ...],
-                prop_func=strip_bands,
-            )
-        )
-    elif axis == "pixels":
-        # pass through properties from the image stack
-        return Mosaic(_apply_unary(obj, lambda a: reducer(a, axis=axis_from_name)))
-    else:  # axis in (images)
-        return Mosaic(
-            _apply_unary(
-                obj, lambda a: reducer(a, axis=axis_from_name), prop_func=mosaic_props
-            )
-        )
-
-
-ImageStack.sum = lambda image_stack, axis: reduction(image_stack, np.sum, axis=axis)
-ImageStack.min = lambda image_stack, axis: reduction(image_stack, np.min, axis=axis)
-ImageStack.max = lambda image_stack, axis: reduction(image_stack, np.max, axis=axis)
-ImageStack.median = lambda image_stack, axis: reduction(
-    image_stack, np.median, axis=axis
-)
-ImageStack.mean = lambda image_stack, axis: reduction(image_stack, np.mean, axis=axis)
-ImageStack.std = lambda image_stack, axis: reduction(image_stack, np.std, axis=axis)
 
 
 def dot(

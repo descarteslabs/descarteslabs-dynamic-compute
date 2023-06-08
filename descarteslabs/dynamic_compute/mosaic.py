@@ -16,6 +16,7 @@ from .compute_map import (
     ExpMixin,
     FloorDivMixin,
     MulMixin,
+    NumpyReductionMixin,
     SignedMixin,
     SubMixin,
     TrueDivMixin,
@@ -34,6 +35,7 @@ from .operations import (
     format_bands,
     set_cache_id,
 )
+from .reductions import reduction
 
 
 class Mosaic(
@@ -45,6 +47,7 @@ class Mosaic(
     SignedMixin,
     ExpMixin,
     CompareMixin,
+    NumpyReductionMixin,
     ComputeMap,  # Base class
 ):
     """
@@ -325,6 +328,26 @@ class Mosaic(
             _apply_unary(self, lambda a: np.clip(a, lo, hi)),
         )
 
+    def reduce(self, reducer: Callable, axis: str = "bands"):
+        """
+        Call a reduction function on this Mosaic
+
+        Args:
+            reducer (Callable): function to reduce Mosaic
+            axis (str): Axis over which to call the reducer, must be in ["bands"].
+
+        Raises:
+            NotImplementedError: axis must be `bands`
+
+        Returns:
+            Mosaic
+        """
+        if axis != "bands":
+            raise NotImplementedError(
+                f"Reduction over {axis} not implemented for Mosaic"
+            )
+        return reduction(self, reducer, axis)
+
     def visualize(
         self,
         name: str,
@@ -379,54 +402,6 @@ class Mosaic(
             )
             map.add_layer(layer)
             return layer
-
-
-def band_reduction(
-    obj: Mosaic, reducer: Callable[[np.ndarray], np.ndarray], axis: Optional[str] = None
-) -> Mosaic:
-    """
-    Implement reducer over bands. This call does not
-    mutate `this`
-
-    Parameters
-    ----------
-    reducer: Callable[[np.ndarray], np.ndarray]
-        Function to reduce along the first axis of the array.
-    axis: str
-        Axis over which to sum, must be in ["bands", "scenes"]. If `axis`
-        is not "bands" we dispatch to the parent function.
-
-    Returns
-    -------
-    reduction: Mosaic
-        Mosaic object representing reduction.
-    """
-
-    if axis != "bands":
-        raise NotImplementedError(f"Reduction over {axis} not implemented for Mosaic")
-
-    def strip_bands(d):
-        if "bands" in d:
-            d.pop("bands")
-
-        return d
-
-    # We insert a new axis (None in the brackets) so that data retains
-    # a shape that is (num-bands, num-rows, num-cols)
-    return Mosaic(
-        _apply_unary(
-            obj, lambda a: reducer(a, axis=0)[None, ...], prop_func=strip_bands
-        ),
-    )
-
-
-# Append band reducers to the Mosaic class as bound methods.
-Mosaic.sum = lambda mosaic, axis: band_reduction(mosaic, np.sum, axis=axis)
-Mosaic.min = lambda mosaic, axis: band_reduction(mosaic, np.min, axis=axis)
-Mosaic.max = lambda mosaic, axis: band_reduction(mosaic, np.max, axis=axis)
-Mosaic.median = lambda mosaic, axis: band_reduction(mosaic, np.median, axis=axis)
-Mosaic.mean = lambda mosaic, axis: band_reduction(mosaic, np.mean, axis=axis)
-Mosaic.argmax = lambda mosaic, axis: band_reduction(mosaic, np.argmax, axis=axis)
 
 
 def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
