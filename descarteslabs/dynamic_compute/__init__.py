@@ -1,4 +1,3 @@
-from .blob import delete_blob_in_catalog, list_catalog_blobs, share_catalog_blob
 from .compute_map import (
     arccos,
     arcsin,
@@ -19,8 +18,11 @@ from .image_stack import ImageStack
 from .interactive import map
 from .mosaic import Mosaic
 
+from . import catalog  # isort: skip
+
 __all__ = [
     "as_compute_map",
+    "catalog",
     "share_catalog_blob",
     "list_catalog_blobs",
     "delete_blob_in_catalog",

@@ -1,14 +1,16 @@
-import json
+from __future__ import annotations
+
+import dataclasses
 from collections import namedtuple
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Type, Union
+from typing import Callable, Union
 
 from descarteslabs.geo import AOI
 
-from .blob import GRAFTS_NAMESPACE, create_blob_and_upload_data, load_graft_from_blob
 from .compute_map import ComputeMap
 from .operations import compute_aoi, set_cache_id
+from .serialization import BaseSerializationModel
 
 BUILT_IN_REDUCERS = ["max", "min", "mean", "median", "sum", "std"]
 
@@ -40,6 +42,12 @@ class ImageStackGroups:
             elif self.reducer and isinstance(self.reducer.func, Callable):
                 image_stack = image_stack.reduce(self.reducer.func, self.reducer.axis)
             yield group_name, image_stack
+
+
+@dataclasses.dataclass
+class ImageStackGroupBySerializationModel(BaseSerializationModel):
+    image_stack_json: str
+    groups_graft: dict
 
 
 class ImageStackGroupBy(ComputeMap):
@@ -163,82 +171,32 @@ class ImageStackGroupBy(ComputeMap):
         groups.reducer = ImageStackReducer(function, axis)
         return groups
 
-    def save_to_catalog_blob(
-        self,
-        name: str,
-        description: Optional[str] = None,
-        extra_properties: Optional[Dict[str, Union[str, int, float]]] = None,
-        readers: Optional[List[str]] = None,
-        writers: Optional[List[str]] = None,
-        tags: Optional[List[str]] = None,
-    ):
-        """Saves this object to catalog as a Blob
+    def serialize(self):
+        """Serializes this object into a json representation"""
 
-        Parameters
-        ----------
-        name : str
-            The name to give the blob in catalog
-        description : Optional[str], optional
-            A description of the blob, by default None
-        extra_properties : Optional[dict[str, Union[str, int, float]]], optional
-            Any extra properties to be stored in the blob, by default None
-        readers : Optional[list[str]], optional
-            A list of emails, orgs, groups, and users to give read access to the blob, by default None
-        writers : Optional[list[str]], optional
-            A list of emails, orgs, groups, and users to give write access to the blob, by default None
-        tags : Optional[List[str]], optional
-            A list of tags to assign to the blob
-
-        Returns
-        -------
-        str
-            The id of the blob created
-        """
-        extra_properties = extra_properties or {}
-        extra_properties["graft_type"] = self.__class__.__name__
-
-        blob = create_blob_and_upload_data(
-            json.dumps(
-                {
-                    "image_stack": self.image_stack,
-                    "groups_graft": self.groups_graft,
-                    "scenes_graft": self.image_stack.scenes_graft,
-                    "bands": self.image_stack.bands,
-                    "product_id": self.image_stack.product_id,
-                }
-            ),
-            name,
-            namespace=GRAFTS_NAMESPACE,
-            description=description,
-            extra_properties=extra_properties,
-            readers=readers,
-            writers=writers,
-            tags=tags,
-        )
-
-        return blob.id
+        return ImageStackGroupBySerializationModel(
+            image_stack_json=self.image_stack.serialize(),
+            groups_graft=self.groups_graft,
+        ).json()
 
     @classmethod
-    def load_from_catalog_blob(cls, name: str) -> Type[ComputeMap]:
-        """Loads an dynamic compute type from catalog
+    def deserialize(cls, data: str) -> ImageStackGroupBy:
+        """Deserializes into this object from json
 
         Parameters
         ----------
-        name : str
-            The name of the blob in catalog
+        data : str
+            The json representation of the object state
 
         Returns
         -------
-        Type[ComputeMap]
-            The loaded object
+        ImageStackGroupby
+            An instance of this object with the state stored in data
         """
 
-        graft_dict = load_graft_from_blob(name, cls.__name__)
-        image_stack = cls.__SUBCLASSES__["ImageStack"](
-            graft_dict["image_stack"],
-            graft_dict["scenes_graft"],
-            graft_dict["bands"],
-            graft_dict["product_id"],
-        )
+        model = ImageStackGroupBySerializationModel.from_json(data)
 
-        return cls(image_stack, graft_dict["groups_graft"])
+        return cls(
+            ComputeMap.__SUBCLASSES__["ImageStack"].deserialize(model.image_stack_json),
+            model.groups_graft,
+        )

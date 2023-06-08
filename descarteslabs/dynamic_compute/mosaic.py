@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import json
 import logging
@@ -36,6 +37,18 @@ from .operations import (
     set_cache_id,
 )
 from .reductions import reduction
+from .serialization import BaseSerializationModel
+
+
+@dataclasses.dataclass
+class MosaicSerializationModel(BaseSerializationModel):
+    """State representation of a Mosaic instance"""
+
+    graft: Dict
+    product_id: str
+    bands: Union[str, List[str]]
+    start_datetime: Optional[str] = None
+    end_datetime: Optional[str] = None
 
 
 class Mosaic(
@@ -86,7 +99,7 @@ class Mosaic(
         set_cache_id(graft)
         super().__init__(graft)
         self.bands = bands
-        self.product_id = str(product_id)
+        self.product_id = product_id
         self.start_datetime = normalize_datetime_or_none(start_datetime)
         self.end_datetime = normalize_datetime_or_none(end_datetime)
 
@@ -170,8 +183,9 @@ class Mosaic(
             parameter_overrides=parameter_overrides,
         )
 
-    @staticmethod
+    @classmethod
     def from_product_bands(
+        cls,
         product_id: str,
         bands: Union[str, List[str]],
         start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
@@ -200,16 +214,19 @@ class Mosaic(
         """
 
         _ = get_product_or_fail(product_id)
+        start_datetime = normalize_datetime_or_none(start_datetime)
+        end_datetime = normalize_datetime_or_none(end_datetime)
+        bands = " ".join(format_bands(bands))
 
-        return Mosaic(
-            create_mosaic(
-                product_id,
-                " ".join(format_bands(bands)),
-                normalize_datetime_or_none(start_datetime),
-                normalize_datetime_or_none(end_datetime),
-                **kwargs,
-            )
+        graft = create_mosaic(
+            product_id,
+            bands,
+            start_datetime,
+            end_datetime,
+            **kwargs,
         )
+
+        return cls(graft, bands, product_id, start_datetime, end_datetime)
 
     def pick_bands(self, bands: Union[str, List[str]]) -> Mosaic:
         """
@@ -402,6 +419,34 @@ class Mosaic(
             )
             map.add_layer(layer)
             return layer
+
+    def serialize(self):
+        """Serializes this object into a json representation"""
+
+        return MosaicSerializationModel(
+            graft=dict(self),
+            product_id=self.product_id,
+            bands=self.bands,
+            start_datetime=self.start_datetime,
+            end_datetime=self.end_datetime,
+        ).json()
+
+    @classmethod
+    def deserialize(cls, data: str) -> Mosaic:
+        """Deserializes into this object from json
+
+        Parameters
+        ----------
+        data : str
+            The json representation of the object state
+
+        Returns
+        -------
+        Mosaic
+            An instance of this object with the state stored in data
+        """
+
+        return cls(**MosaicSerializationModel.from_json(data).dict())
 
 
 def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:

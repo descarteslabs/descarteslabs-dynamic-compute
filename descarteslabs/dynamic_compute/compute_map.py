@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import sys
+from abc import ABC, abstractclassmethod, abstractmethod
 from copy import copy
 from io import StringIO
 from numbers import Number
@@ -12,7 +13,6 @@ from typing import Any, Callable, Dict, List, Optional, Type, Union
 import descarteslabs as dl
 import numpy as np
 
-from .blob import GRAFTS_NAMESPACE, create_blob_and_upload_data, load_graft_from_blob
 from .graft.client import client as graft_client
 from .graft.interpreter.interpreter import interpret
 from .graft.syntax import syntax as graft_syntax
@@ -84,7 +84,7 @@ def groupby(*args, **kwargs):
     return None
 
 
-class ComputeMap(dict):
+class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
     descended from ComputeMap
@@ -221,71 +221,19 @@ class ComputeMap(dict):
         new_compute_map.return_val = "all"
         return new_compute_map
 
-    def save_to_catalog_blob(
-        self,
-        name: str,
-        description: Optional[str] = None,
-        extra_properties: Optional[Dict[str, Union[str, int, float]]] = None,
-        readers: Optional[List[str]] = None,
-        writers: Optional[List[str]] = None,
-        tags: Optional[List[str]] = None,
-    ):
-        """Saves this object to catalog as a Blob
+    @abstractmethod
+    def serialize(self):
+        """Abstract method for serializing this object's state"""
 
-        Parameters
-        ----------
-        name : str
-            The name to give the blob in catalog
-        description : Optional[str], optional
-            A description of the blob, by default None
-        extra_properties : Optional[dict[str, Union[str, int, float]]], optional
-            Any extra properties to be stored in the blob, by default None
-        readers : Optional[list[str]], optional
-            A list of emails, orgs, groups, and users to give read access to the blob, by default None
-        writers : Optional[list[str]], optional
-            A list of emails, orgs, groups, and users to give write access to the blob, by default None
-        tags : Optional[List[str]], optional
-            A list of tags to assign to the blob
+        err_msg = "Abstract method, must be implemented by subclasses"
+        raise NotImplementedError(err_msg)
 
-        Returns
-        -------
-        str
-            The id of the blob created
-        """
-        extra_properties = extra_properties or {}
-        extra_properties["graft_type"] = self.__class__.__name__
+    @abstractclassmethod
+    def deserialize(cls):
+        """Abstract method for deserializing state into an instance of this object"""
 
-        blob = create_blob_and_upload_data(
-            json.dumps(dict(self)),
-            name,
-            namespace=GRAFTS_NAMESPACE,
-            description=description,
-            extra_properties=extra_properties,
-            readers=readers,
-            writers=writers,
-            tags=tags,
-        )
-
-        return blob.id
-
-    @classmethod
-    def load_from_catalog_blob(cls, name: str) -> Type[ComputeMap]:
-        """Loads an dynamic compute type from catalog
-
-        Parameters
-        ----------
-        name : str
-            The name of the blob in catalog
-
-        Returns
-        -------
-        Type[ComputeMap]
-            The loaded object
-        """
-
-        return cls.__SUBCLASSES__[cls.__name__](
-            load_graft_from_blob(name, cls.__name__)
-        )
+        err_msg = "Abstract method, must be implemented by subclasses"
+        raise NotImplementedError(err_msg)
 
 
 def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray]) -> ComputeMap:

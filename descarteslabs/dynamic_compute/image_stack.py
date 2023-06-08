@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import datetime
 import json
 from typing import Callable, Dict, List, Optional, Tuple, Union
@@ -41,8 +42,21 @@ from .operations import (
     stack_scenes,
 )
 from .reductions import reduction
+from .serialization import BaseSerializationModel
 
 AXIS_NAME_TO_INDEX_MAP = {"images": (0,), "bands": (1,), "pixels": (2, 3)}
+
+
+@dataclasses.dataclass
+class ImageStackSerializationModel(BaseSerializationModel):
+    """State representation of a ImageStack instance"""
+
+    full_graft: Dict
+    scenes_graft: Dict
+    product_id: str
+    bands: Union[str, List[str]]
+    start_datetime: Optional[str] = None
+    end_datetime: Optional[str] = None
 
 
 class ImageStack(
@@ -113,8 +127,9 @@ class ImageStack(
         self.start_datetime = normalize_datetime_or_none(start_datetime)
         self.end_datetime = normalize_datetime_or_none(end_datetime)
 
-    @staticmethod
+    @classmethod
     def from_product_bands(
+        cls,
         product_id: str,
         bands: Union[str, List[str]],
         start_datetime: Union[str, datetime.date, datetime.datetime],
@@ -150,7 +165,7 @@ class ImageStack(
             product_id, formatted_bands, start_datetime, end_datetime
         )
 
-        return ImageStack(
+        return cls(
             stack_scenes(scenes_graft, bands),
             scenes_graft,
             bands,
@@ -381,6 +396,34 @@ class ImageStack(
         raise NotImplementedError(
             "ImageStacks cannot be visualized. You must reduce this to a Mosaic before calling visualize."
         )
+
+    def serialize(self):
+        """Serializes this object into a json representation"""
+
+        return ImageStackSerializationModel(
+            full_graft=dict(self),
+            scenes_graft=self.scenes_graft,
+            product_id=self.product_id,
+            bands=self.bands,
+            start_datetime=self.start_datetime,
+            end_datetime=self.end_datetime,
+        ).json()
+
+    @classmethod
+    def deserialize(cls, data: str) -> ImageStack:
+        """Deserializes into this object from json
+
+        Parameters
+        ----------
+        data : str
+            The json representation of the object state
+
+        Returns
+        -------
+        ImageStack
+            An instance of this object with the state stored in data
+        """
+        return cls(**ImageStackSerializationModel.from_json(data).dict())
 
 
 def dot(
