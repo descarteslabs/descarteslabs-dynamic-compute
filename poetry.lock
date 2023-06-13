@@ -403,13 +403,14 @@ files = [
 
 [[package]]
 name = "descarteslabs"
-version = "2.0.0rc5"
+version = "2.0.0"
 description = "Descartes Labs Python Client"
 category = "main"
 optional = false
 python-versions = "~=3.7"
 files = [
-    {file = "v2.0.0rc5.zip", hash = "sha256:540e3e27af971e3b62488287005fbf1a00a664e1f2952b6ee35e30b7b99f5349"},
+    {file = "descarteslabs-2.0.0-py3-none-any.whl", hash = "sha256:c6aa2da7f49245e16cdf2b9dc8af1322cca638e48f1ef9c908d52a97da7e2b5a"},
+    {file = "descarteslabs-2.0.0.tar.gz", hash = "sha256:f01af0d7e39aeddc6ebdd6fbed8ceac6f0d9b65564862cb0db945f261920ff59"},
 ]
 
 [package.dependencies]
@@ -420,7 +421,7 @@ dill = ">=0.3.6"
 dynaconf = ">=3.1.11"
 geojson = ">=2.5.0"
 imagecodecs = ">=2021.5.20"
-lazy_object_proxy = ">=1.7.1"
+lazy-object-proxy = ">=1.7.1"
 mercantile = ">=1.1.3"
 numpy = {version = ">=1.21.6", markers = "python_version >= \"3.8\" and python_version < \"3.11\""}
 Pillow = ">=9.2.0"
@@ -437,10 +438,6 @@ urllib3 = ">=1.26.12,<2"
 complete = ["matplotlib (>=3.1.2)"]
 tests = ["freezegun (==0.3.12)", "pytest (==6.0.0)", "responses (==0.12.1)"]
 visualization = ["matplotlib (>=3.1.2)"]
-
-[package.source]
-type = "url"
-url = "https://github.com/descarteslabs/descarteslabs-python/archive/refs/tags/v2.0.0rc5.zip#egg=descarteslabs"
 
 [[package]]
 name = "dill"
@@ -1744,4 +1741,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.10"
-content-hash = "b5148689b49b7264770be3d2538f47a7a2a8006219bb30b49d3eb4bc3a4f260b"
+content-hash = "0105498d47dd9989dd4489f0ba6d49ba0c45678e555981bba2b00a523a08c204"
