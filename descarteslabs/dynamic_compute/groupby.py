@@ -48,6 +48,7 @@ class ImageStackGroups:
 class ImageStackGroupBySerializationModel(BaseSerializationModel):
     image_stack_json: str
     groups_graft: dict
+    reducer: ImageStackReducer = None
 
 
 class ImageStackGroupBy(ComputeMap):
@@ -167,9 +168,11 @@ class ImageStackGroupBy(ComputeMap):
             raise TypeError(
                 f"Reducer {function} is not a member of {BUILT_IN_REDUCERS}"
             )
+        new_imagestackgroupby = ImageStackGroupBy(self.image_stack, self.groups_graft)
         groups = deepcopy(self.groups)
         groups.reducer = ImageStackReducer(function, axis)
-        return groups
+        new_imagestackgroupby.groups = groups
+        return new_imagestackgroupby
 
     def serialize(self):
         """Serializes this object into a json representation"""
@@ -177,6 +180,7 @@ class ImageStackGroupBy(ComputeMap):
         return ImageStackGroupBySerializationModel(
             image_stack_json=self.image_stack.serialize(),
             groups_graft=self.groups_graft,
+            reducer=self.groups.reducer,
         ).json()
 
     @classmethod
@@ -196,7 +200,11 @@ class ImageStackGroupBy(ComputeMap):
 
         model = ImageStackGroupBySerializationModel.from_json(data)
 
-        return cls(
+        imagestack_groupby = cls(
             ComputeMap.__SUBCLASSES__["ImageStack"].deserialize(model.image_stack_json),
             model.groups_graft,
         )
+        imagestack_groupby.groups.reducer = (
+            ImageStackReducer(*model.reducer) if model.reducer else None
+        )
+        return imagestack_groupby
