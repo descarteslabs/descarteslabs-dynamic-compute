@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "dynamic_compute"
-version = "0.4.1"
+version = "0.4.2"
 description = ""
 authors = ["Descartes Labs"]
 readme = "README.md"
@@ -17,7 +17,7 @@ utm = "^0.7.0"
 pyproj = "^3.4.1"
 geojson = ">=2.5.0"
 numpy = "<=1.24.2"
-descarteslabs = "~2.0.0"
+descarteslabs = "~2.0.1"
 cloudpickle = "1.6.0"
 
 
