@@ -628,11 +628,12 @@ class NumpyReductionMixin:
 
     def argmax(self, axis):
         """
-            Apply np.ma.sum to the ComputeMap
+            Apply np.ma.argmax to the ComputeMap
 
         Args:
-            axis (str): Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
-            If called on an ImageStack, must be in ["bands", "images"]
+            axis: (str)
+                Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+                If called on an ImageStack, must be in ["bands", "images"]
 
         Returns:
             Mosaic
