@@ -126,6 +126,13 @@ class ImageStack(
         self.product_id = str(product_id)
         self.start_datetime = normalize_datetime_or_none(start_datetime)
         self.end_datetime = normalize_datetime_or_none(end_datetime)
+        self.init_args = {
+            "scenes_graft": self.scenes_graft,
+            "bands": self.bands,
+            "product_id": self.product_id,
+            "start_datetime": self.start_datetime,
+            "end_datetime": self.end_datetime,
+        }
 
     @classmethod
     def from_product_bands(
@@ -193,16 +200,18 @@ class ImageStack(
         if self.scenes_graft is None:
             raise Exception(
                 "This ImageStack cannot be filtered because "
-                "it is not derived from an ImageCollection"
+                "it no longer has image metadata. This can happen "
+                "when, e.g., an ImageStack is created from a mathematical "
+                "operation "
             )
 
         new_scenes_graft = filter_scenes(self.scenes_graft, encode_function(f))
 
         return ImageStack(
             stack_scenes(new_scenes_graft, self.bands),
-            new_scenes_graft,
-            self.bands,
-            self.product_id,
+            scenes_graft=new_scenes_graft,
+            bands=self.bands,
+            product_id=self.product_id,
         )
 
     def get(self, idx: int) -> Mosaic:
@@ -253,7 +262,12 @@ class ImageStack(
             New mosaic object.
         """
 
-        return ImageStack(_pick_bands(self, json.dumps(format_bands(bands))))
+        return ImageStack(
+            _pick_bands(self, json.dumps(format_bands(bands))),
+            scenes_graft=self.scenes_graft,
+            bands=self.bands,
+            product_id=self.product_id,
+        )
 
     def unpack_bands(
         self, bands: Union[str, List[str]]
@@ -282,12 +296,20 @@ class ImageStack(
     def rename_bands(self, bands):
         """Rename the bands of an array."""
 
-        return ImageStack(_rename_bands(self, json.dumps(format_bands(bands))))
+        return ImageStack(
+            _rename_bands(self, json.dumps(format_bands(bands))),
+            scenes_graft=self.scenes_graft,
+            bands=self.bands,
+            product_id=self.product_id,
+        )
 
     def concat_bands(self, other: ImageStack) -> ImageStack:
         """
         Create a new ImageStack that stacks bands. This call does not
         mutate `this`
+
+        Note that per-image metadata for the returned ImageStack instance is
+        taken form `self` not `other`.
 
         Parameters
         ----------
@@ -305,6 +327,7 @@ class ImageStack(
 
         return ImageStack(
             _concat_bands(self, other),
+            scenes_graft=self.scenes_graft,
         )
 
     def mask(self, mask: ComputeMap) -> ImageStack:
@@ -325,6 +348,9 @@ class ImageStack(
 
         return ImageStack(
             _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
+            scenes_graft=self.scenes_graft,
+            bands=self.bands,
+            product_id=self.product_id,
         )
 
     def groupby(
@@ -361,7 +387,10 @@ class ImageStack(
         """
         if self.scenes_graft is None:
             raise Exception(
-                "This ImageStack cannot be grouped because it is not derived from an ImageCollection"
+                "This ImageStack cannot be grouped because "
+                "it no longer has image metadata. This can happen "
+                "when, e.g., an ImageStack is created from a mathematical "
+                "operation "
             )
 
         encoded_grouper = encode_function(grouper)
@@ -390,7 +419,16 @@ class ImageStack(
             Reduced object, either a Mosaic if axis is "images" or an ImageStack
             if axis is "bands"
         """
-        return reduction(self, reducer, axis)
+
+        if axis == "bands":
+            kwargs = {
+                "scenes_graft": self.scenes_graft,
+                "product_id": self.product_id,
+            }
+        else:
+            kwargs = {}
+
+        return reduction(self, reducer, axis, **kwargs)
 
     def visualize(*args, **kwargs):
         raise NotImplementedError(

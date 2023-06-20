@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sys
 from abc import ABC, abstractclassmethod, abstractmethod
-from copy import copy
+from copy import copy, deepcopy
 from io import StringIO
 from numbers import Number
 from typing import Any, Callable, Dict, List, Optional, Type, Union
@@ -167,6 +167,7 @@ class ComputeMap(dict, ABC):
 
         super().__init__(d)
         self.return_val = "all"
+        self.init_args = {}
 
     def __getattr__(self, attr):
         # Provide a way to evaluate to *just* the raster data or *just* the properties.
@@ -234,6 +235,19 @@ class ComputeMap(dict, ABC):
 
         err_msg = "Abstract method, must be implemented by subclasses"
         raise NotImplementedError(err_msg)
+
+    def _extra_init_args(self):
+        """
+        An instance of a ComputeMap is initialized from a dict. Instances
+        of subclasses of ComputeMap sometimes require additional arguments to
+        initialize.
+
+        Returns
+        -------
+        extra_args: dict
+            A copy of any extra arguments that should be passed to the constructor to recreate "self"
+        """
+        return deepcopy(self.init_args)
 
 
 def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray]) -> ComputeMap:
@@ -332,9 +346,20 @@ def binary_op(
     a = as_compute_map(a)
     b = as_compute_map(b)
 
+    a_init_args = a._extra_init_args()
+    b_init_args = b._extra_init_args()
+
+    init_args = {}
+    if a_init_args == {}:
+        init_args = b_init_args
+    elif b_init_args == {}:
+        init_args = a_init_args
+    elif a_init_args == b_init_args:
+        init_args = a_init_args
+
     return_value = _apply_binary(a, b, f, op_name=op_name)
 
-    return return_type(return_value)
+    return return_type(return_value, **init_args)
 
 
 def index_align_args(f: Callable[[Any, Any], Any]) -> Callable[[Any, Any], Any]:
@@ -401,6 +426,13 @@ def index_align_args(f: Callable[[Any, Any], Any]) -> Callable[[Any, Any], Any]:
 #
 
 
+def _extra_init_args(cm):
+    # Get extra arguments used with the compute map constructor, if available
+    if issubclass(type(cm), ComputeMap):
+        return cm._extra_init_args()
+    return {}
+
+
 class AddMixin:
     def __add__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
@@ -463,10 +495,16 @@ class FloorDivMixin:
 
 class SignedMixin:
     def __abs__(self) -> ComputeMap:
-        return type(self)(_apply_unary(self, lambda a: abs(a)))
+
+        extra_init_args = _extra_init_args(self)
+
+        return type(self)(_apply_unary(self, lambda a: abs(a)), **extra_init_args)
 
     def __neg__(self) -> ComputeMap:
-        return type(self)(_apply_unary(self, lambda a: -a))
+
+        extra_init_args = _extra_init_args(self)
+
+        return type(self)(_apply_unary(self, lambda a: -a), **extra_init_args)
 
 
 class ExpMixin:
@@ -682,7 +720,9 @@ def _functional_op(f):
         if issubclass(type(arg), Number):
             return f(arg)
 
-        return type(arg)(_apply_unary(as_compute_map(arg), f))
+        cm_arg = as_compute_map(arg)
+
+        return type(arg)(_apply_unary(cm_arg, f), **cm_arg._extra_init_args())
 
     return op
 

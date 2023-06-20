@@ -18,6 +18,7 @@ def reduction(
     obj: ComputeMap,
     reducer: Callable[[np.ndarray], np.ndarray],
     axis: Optional[str] = None,
+    **kwargs,
 ) -> ComputeMap:
     """
     Perform a reduction over either images or bands. Note that this does not mutate obj.
@@ -82,7 +83,8 @@ def reduction(
                     obj,
                     lambda a: reducer(a, axis=axis_from_name)[:, None, ...],
                     prop_func=strip_bands,
-                )
+                ),
+                **kwargs,
             )
         elif obj_type_str == "Mosaic":
             return Mosaic(
