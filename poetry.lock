@@ -403,14 +403,14 @@ files = [
 
 [[package]]
 name = "descarteslabs"
-version = "2.0.0"
+version = "2.0.1"
 description = "Descartes Labs Python Client"
 category = "main"
 optional = false
 python-versions = "~=3.7"
 files = [
-    {file = "descarteslabs-2.0.0-py3-none-any.whl", hash = "sha256:c6aa2da7f49245e16cdf2b9dc8af1322cca638e48f1ef9c908d52a97da7e2b5a"},
-    {file = "descarteslabs-2.0.0.tar.gz", hash = "sha256:f01af0d7e39aeddc6ebdd6fbed8ceac6f0d9b65564862cb0db945f261920ff59"},
+    {file = "descarteslabs-2.0.1-py3-none-any.whl", hash = "sha256:740f7425bdd79a317739da68a9e8b380978931acb2445e29c7be6101571dbdf5"},
+    {file = "descarteslabs-2.0.1.tar.gz", hash = "sha256:d855af411108fcdc0c24393b6c604c86f04eb18056d38c5bb0d3b83768ceb2c2"},
 ]
 
 [package.dependencies]
@@ -1740,5 +1740,5 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.8, <3.10"
-content-hash = "0105498d47dd9989dd4489f0ba6d49ba0c45678e555981bba2b00a523a08c204"
+python-versions = ">=3.8, <3.11"
+content-hash = "bb1394bd4d91780d64839d6e3ec5dcd57656a50978588f88d489d34fe2617b88"
