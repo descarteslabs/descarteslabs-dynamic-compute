@@ -3,6 +3,7 @@ import json
 import logging
 import threading
 import uuid
+from importlib.metadata import version
 from urllib.parse import urlencode
 
 import descarteslabs as dl
@@ -11,7 +12,7 @@ import ipywidgets as widgets
 import requests
 import traitlets
 
-from ..operations import API_HOST, set_cache_id
+from ..operations import API_HOST, _python_major_minor_version, set_cache_id
 from . import parameters
 from .clearable import ClearableOutput
 from .tile_url import validate_scales
@@ -288,9 +289,11 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         # Create a layer from the graft
         response = requests.post(
             f"{API_HOST}/layers/",
-            headers={"Authorization": dl.auth.Auth().token},
+            headers={"Authorization": dl.auth.Auth.get_default_auth().token},
             json={
                 "graft": self.imagery,
+                "python_version": _python_major_minor_version,
+                "dynamic_compute_version": version("dynamic-compute"),
             },
         )
         response.raise_for_status()
@@ -298,6 +301,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         self.set_trait("layer_id", layer_id)
         # URL encode query parameters
         params = {}
+        params["python_version"] = _python_major_minor_version
         if scales is not None:
             params["scales"] = json.dumps(scales)
         if self.colormap is not None:

@@ -1,6 +1,6 @@
-from pkg_resources import get_distribution
+from importlib.metadata import version
 
-__version__ = get_distribution("dynamic-compute").version
+__version__ = version("dynamic-compute")
 
 from .compute_map import (
     arccos,

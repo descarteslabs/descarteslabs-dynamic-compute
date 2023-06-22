@@ -6,6 +6,7 @@ import json
 import os
 import pickle
 from copy import deepcopy
+from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Optional, Union
 from urllib.parse import urlencode
 
@@ -17,6 +18,7 @@ import numpy as np
 import requests
 
 from .graft import client as graft_client
+from .pyversions import PythonVersion
 
 API_HOST = os.getenv(
     "API_HOST", "https://dynamic-compute.appsci-production.aws.descarteslabs.com"
@@ -24,6 +26,7 @@ API_HOST = os.getenv(
 
 SINGLE_POINT_BUFFER_VALUE = 0.0000001
 WGS84_CRS = "EPSG:4326"
+_python_major_minor_version = PythonVersion.from_sys().major_minor
 
 
 def operation(func: Callable):
@@ -543,16 +546,23 @@ def create_layer(
     # Create a layer from the graft
     response = requests.post(
         f"{API_HOST}/layers/",
-        headers={"Authorization": dl.auth.Auth().token},
+        headers={"Authorization": dl.auth.Auth.get_default_auth().token},
         json={
             "graft": graft,
+            "python_version": _python_major_minor_version,
+            "dynamic_compute_version": version("dynamic-compute"),
         },
     )
     response.raise_for_status()
+    if response.status_code != 200:
+        content = json.loads(response.content)
+        raise Exception(content.get("detail", "An unknown error occurred."))
+
     layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
     # URL encode query parameters
     params = {}
+    params["python_version"] = _python_major_minor_version
     if scales is not None:
         params["scales"] = json.dumps(scales)
     if colormap is not None:
@@ -742,18 +752,23 @@ def compute_aoi(
         # NOTE: This is sort of redundant, but layer IDs are hashes so it won't result in duplicates of existing layers
         response = requests.post(
             f"{API_HOST}/layers/",
-            headers={"Authorization": dl.auth.Auth().token},
+            headers={"Authorization": dl.auth.Auth.get_default_auth().token},
             json={
                 "graft": graft,
+                "python_version": _python_major_minor_version,
+                "dynamic_compute_version": version("dynamic-compute"),
             },
         )
         response.raise_for_status()
+        if response.status_code != 201:
+            content = json.loads(response.content)
+            raise Exception(content.get("detail", "An unknown error occurred."))
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
     # Compute the AOI
     response = requests.post(
         f"{API_HOST}/layers/{layer_id}/aoi",
-        headers={"Authorization": dl.auth.Auth().token},
+        headers={"Authorization": dl.auth.Auth.get_default_auth().token},
         json={
             "geometry": geojson.Feature(geometry=aoi.geometry)["geometry"],
             "resolution": aoi.resolution,
@@ -763,6 +778,8 @@ def compute_aoi(
             "bounds_crs": aoi.bounds_crs,
             "shape": aoi.shape,
             "all_touched": aoi.all_touched,
+            "python_version": _python_major_minor_version,
+            "dynamic_compute_version": version("dynamic-compute"),
         },
     )
 
