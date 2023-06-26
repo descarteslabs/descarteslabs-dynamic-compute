@@ -309,7 +309,7 @@ class ImageStack(
         mutate `this`
 
         Note that per-image metadata for the returned ImageStack instance is
-        taken form `self` not `other`.
+        taken from `self` not `other`.
 
         Parameters
         ----------
@@ -354,16 +354,14 @@ class ImageStack(
         )
 
     def groupby(
-        self: ImageStack, grouper: Callable[[np.ndarray], np.ndarray]
+        self: ImageStack, grouping_func: Callable[[np.ndarray], np.ndarray]
     ) -> ImageStackGroupBy:
         """
         Perform a grouping function over either images or bands and return an ImageStackGroupBy object.
 
         Parameters
         ----------
-        self: ImageStack
-            ImageStack to be grouped
-        grouper: Callable[[np.ndarray], np.ndarray]
+        grouping_func: Callable[[np.ndarray], np.ndarray]
             Function to pick out the values to group by
 
         Returns
@@ -393,8 +391,8 @@ class ImageStack(
                 "operation "
             )
 
-        encoded_grouper = encode_function(grouper)
-        groups = groupby(self.scenes_graft, encoded_grouper)
+        encoded_grouping_func = encode_function(grouping_func)
+        groups = groupby(self.scenes_graft, encoded_grouping_func)
 
         return ImageStackGroupBy(self, groups)
 
@@ -406,8 +404,6 @@ class ImageStack(
 
         Parameters
         ----------
-        self: ImageStack
-            ImageStack to be reduced
         reducer: Callable[[np.ndarray], np.ndarray]
             Function to perform the reduction
         axis: str
