@@ -1,12 +1,16 @@
 # Dynamic-Compute 🗺️
 
+![PyPI](https://img.shields.io/pypi/v/descarteslabs-dynamic-compute)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/descarteslabs-dynamic-compute)
+![PyPI - License](https://img.shields.io/pypi/l/descarteslabs-dynamic-compute)
+
 > "It occurs to me that our survival may depend upon our talking to one another." — "Sol Weintraub", [Hyperion](<https://en.wikipedia.org/wiki/Hyperion_(Simmons_novel)>)
 
-_Dynamic-Compute_ is a **map computation engine**. It enables users to **dynamically** generate maps from a **composable** set of Python operations. Together, these properties enable data scientists and the building of complex GIS applications.
+_Dynamic-Compute_ is a **map computation engine**. It enables users to **dynamically** generate maps from a **composable** set of Python operations. Together, these properties enable data scientists in the building of complex GIS applications.
 
 Formal documentation for this library is available under the [Descartes Labs API Documentation](https://docs.descarteslabs.com/api.html).
 
-Example notebooks to get started can be found under [descarteslabs/dynamic-compute/example-notebooks/](/descarteslabs/dynamic-compute/example-notebooks/). Below is a very simple example to get you started using the map:
+Example notebooks to get started can be found under [Descartes Labs Guides](https://docs.descarteslabs.com/guide.html). Below is a very simple example to get you started using the map:
 
 First, we import `descarteslabs.dynamic_compute` and instantiate the map, then set the zoom level and lat, long of the center:
 

@@ -1,6 +1,6 @@
 from importlib.metadata import version
 
-__version__ = version("dynamic-compute")
+__version__ = version("descarteslabs-dynamic-compute")
 
 from .compute_map import (
     arccos,

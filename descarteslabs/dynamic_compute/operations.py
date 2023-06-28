@@ -550,7 +550,7 @@ def create_layer(
         json={
             "graft": graft,
             "python_version": _python_major_minor_version,
-            "dynamic_compute_version": version("dynamic-compute"),
+            "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
         },
     )
     response.raise_for_status()
@@ -756,7 +756,7 @@ def compute_aoi(
             json={
                 "graft": graft,
                 "python_version": _python_major_minor_version,
-                "dynamic_compute_version": version("dynamic-compute"),
+                "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
             },
         )
         response.raise_for_status()
@@ -779,7 +779,7 @@ def compute_aoi(
             "shape": aoi.shape,
             "all_touched": aoi.all_touched,
             "python_version": _python_major_minor_version,
-            "dynamic_compute_version": version("dynamic-compute"),
+            "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
         },
     )
 

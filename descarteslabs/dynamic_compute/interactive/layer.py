@@ -293,7 +293,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             json={
                 "graft": self.imagery,
                 "python_version": _python_major_minor_version,
-                "dynamic_compute_version": version("dynamic-compute"),
+                "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
             },
         )
         response.raise_for_status()

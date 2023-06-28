@@ -40,7 +40,6 @@ jobs:
         run: |
           pip install build 
           python3 -m build
-
       # Upload the Python wheel packages to PyPI using an API Token
       # https://pypi.org/help/#apitoken
       # https://github.com/descarteslabs/paas-infrastructure/blob/main/foundation/operations/pypi.tf
