@@ -4,9 +4,10 @@ import dataclasses
 from collections import namedtuple
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Callable, Union
+from typing import Any, Callable, Union
 
 from descarteslabs.geo import AOI
+from tqdm import tqdm
 
 from .compute_map import ComputeMap
 from .operations import compute_aoi, set_cache_id
@@ -25,23 +26,79 @@ class ImageStackGroups:
         self.computed_AOI: AOI = None
         self.reducer: ImageStackReducer = None
 
-    def compute(self, aoi: AOI) -> Generator:
+    def compute(self, aoi: AOI) -> Generator[Any, ComputeMap]:
+        """
+        Evaluate this groups object for a particular AOI and return a generator yielding
+        tupleS of (group key, ComputeMap)
+
+        Parameters
+        ----------
+            aoi (AOI): descarteslabs.geo.GeoContext
+        GeoContext for which to compute evaluate these groups
+
+        Returns
+        -------
+            Generator[Any, ComputeMap]: generator which yields a tuple: (group key, ComputeMap)
+        """
         if not self.computed_value or self.computed_AOI != aoi:
             self.computed_value, _ = compute_aoi(self.groups_graft, aoi)
             self.computed_AOI = aoi
         for group_name, id_list in self.computed_value:
-            image_stack = self.image_stack.filter(lambda i: i.id in id_list)
+            compute_map = self.image_stack.filter(lambda i: i.id in id_list)
             if (
                 self.reducer
                 and isinstance(self.reducer.func, str)
                 and self.reducer.func in BUILT_IN_REDUCERS
             ):
-                image_stack = getattr(image_stack, self.reducer.func)(
+                compute_map = getattr(compute_map, self.reducer.func)(
                     axis=self.reducer.axis
                 )
             elif self.reducer and isinstance(self.reducer.func, Callable):
-                image_stack = image_stack.reduce(self.reducer.func, self.reducer.axis)
-            yield group_name, image_stack
+                compute_map = compute_map.reduce(self.reducer.func, self.reducer.axis)
+            yield group_name, compute_map
+
+    def compute_all(self, aoi: AOI) -> dict:
+        """
+        Compute the groups for `aoi`, compute each resulting key/ComputeMap pair for the supplied AOI,
+        and return a dictionary containing a key for each unique group and its computed DotDict. This
+        function, potentially long running, features a progressbar display.
+
+        Parameters
+        ----------
+            aoi (AOI): descarteslabs.geo.GeoContext
+        GeoContext for which to compute evaluate these groups
+
+        Returns
+        -------
+            dict: {group key: DotDict, ...} A Dict, where the keys are the computed group keys and the
+            values are the computed DotDict corresponding to each key
+        """
+
+        uncomputed_groups = list(self.compute(aoi))
+        pbar = tqdm(
+            uncomputed_groups,
+            desc="Processing groups",
+            bar_format="{desc:<18}{percentage:3.0f}%|{bar:10}{r_bar}",
+            unit=" groups",
+        )
+        computed_groups = {group_id: value.compute(aoi) for group_id, value in pbar}
+        return computed_groups
+
+    def one(self, aoi: AOI) -> tuple:
+        """
+        A Tuple of (group key, DotDict) for one random group. Helpful for debugging.
+
+        Parameters
+        ----------
+            aoi (AOI): descarteslabs.geo.GeoContext
+        GeoContext for which to compute evaluate these groups
+
+        Returns
+        -------
+            tuple: (group key, DotDict) A tuple of a single group key and its corresponding computed DotDict
+        """
+        group_name, value = next(self.compute(aoi))
+        return group_name, value.compute(aoi)
 
 
 @dataclasses.dataclass
@@ -75,10 +132,12 @@ class ImageStackGroupBy(ComputeMap):
     def max(self, axis="images"):
         """Performs a max operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
 
@@ -88,10 +147,12 @@ class ImageStackGroupBy(ComputeMap):
         """
         Performs a min operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
 
@@ -101,10 +162,12 @@ class ImageStackGroupBy(ComputeMap):
         """
         Performs a median operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
 
@@ -114,10 +177,12 @@ class ImageStackGroupBy(ComputeMap):
         """
         Performs a mean reduction operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
 
@@ -127,10 +192,12 @@ class ImageStackGroupBy(ComputeMap):
         """
         Performs a sum reduction operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
         return self.map("sum", axis)
@@ -139,10 +206,12 @@ class ImageStackGroupBy(ComputeMap):
         """
         Performs an std reduction operation on every grouped ImageStack
 
-        Parameters:
+        Parameters
+        ----------
             axis (str, optional): _description_. Defaults to "images".
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
 
@@ -153,15 +222,18 @@ class ImageStackGroupBy(ComputeMap):
         Applies a function to each grouped ImageStack. `function` can be a string
         of ["max", "min", "mean", "median", "sum", "std"], or a callable function.
 
-        Args:
+        Parameters
+        ----------
             function (Union[str, Callable]): str or Function to apply to each grouped ImageStack. If str must be
                                              one of ["max", "min", "mean", "median", "sum", "std"]
             axis (str): one of ["pixels", "images", "bands"]
 
-        Raises:
+        Raises
+        ------
             TypeError: if function_name not a member of ["max", "min", "mean", "median", "sum", "std"]
 
-        Returns:
+        Returns
+        -------
             ImageStackGroups object
         """
         if isinstance(function, str) and function not in BUILT_IN_REDUCERS:
