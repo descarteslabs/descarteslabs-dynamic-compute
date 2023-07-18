@@ -813,16 +813,17 @@ def value_at(
     -------
         list of numbers
     """
-    from statistics import mean
 
     aoi = _geocontext_from_latlon(lat, lon)
     value_array, _ = compute_aoi(graft, aoi, layer_id)
-
-    return (
-        [mean(data_value.data[0]) for data_value in value_array]
-        if len(value_array.shape) > 1
-        else list(value_array)
-    )
+    if len(value_array.shape) > 1:
+        if np.issubdtype(value_array.dtype.type, np.bool_):
+            # if we're dealing with booleans, return the most common value
+            arr, counts = np.unique(value_array, return_counts=True)
+            return [int(arr[counts == counts.max()][0])]
+        # otherwise, return the mean value
+        return [value_array.mean()]
+    return list(value_array)
 
 
 def _geocontext_from_latlon(lat: float, lon: float) -> dl.geo.AOI:
