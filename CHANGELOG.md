@@ -2,6 +2,25 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## v0.6.1 - 07/19/2023
+
+### Fixed
+
+- Added pixel inspector support for boolean arrays - previously this showed as an explosion image, meaning it failed.
+
+## v0.6.0 - 07/17/2023
+
+### Added
+
+- Added a `compute_all` method to ImageStackGroupBy
+- Added a `one` method to ImageStackGroupBy
+
+### Fixed
+
+### Changed
+
+- Upgrade `descarteslabs` dependency to latest version 2.0.3.
+
 ## v0.5.0 - 6/27/2023
 
 ### Fixed
