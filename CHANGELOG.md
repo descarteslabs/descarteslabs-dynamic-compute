@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Fixed pixel inspector bug introduced in 0.6.1 that was causing single value reports for multiple band products
+
 ## v0.6.1 - 07/19/2023
 
 ### Fixed

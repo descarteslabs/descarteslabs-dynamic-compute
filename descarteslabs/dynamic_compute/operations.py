@@ -814,15 +814,18 @@ def value_at(
         list of numbers
     """
 
+    def _get_most_common_value(array) -> int:
+        arr, counts = np.unique(array, return_counts=True)
+        return int(arr[counts == counts.max()][0])
+
     aoi = _geocontext_from_latlon(lat, lon)
     value_array, _ = compute_aoi(graft, aoi, layer_id)
     if len(value_array.shape) > 1:
         if np.issubdtype(value_array.dtype.type, np.bool_):
             # if we're dealing with booleans, return the most common value
-            arr, counts = np.unique(value_array, return_counts=True)
-            return [int(arr[counts == counts.max()][0])]
-        # otherwise, return the mean value
-        return [value_array.mean()]
+            return list(map(_get_most_common_value, value_array))
+        # otherwise, return each mean value per band
+        return list(map(np.mean, value_array))
     return list(value_array)
 
 
