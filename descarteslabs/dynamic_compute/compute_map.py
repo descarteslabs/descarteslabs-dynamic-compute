@@ -173,7 +173,10 @@ class ComputeMap(dict, ABC):
         # Provide a way to evaluate to *just* the raster data or *just* the properties.
         # This is in support of a Workflows like interface.
         if attr not in ["properties", "ndarray"]:
-            return super().__getattr__(self, attr)
+            try:
+                return super().__getattr__(self, attr)
+            except:  # noqa E722
+                raise AttributeError(f"{attr} is not supported by dynamic-compute")
 
         new_compute_map = copy(self)
         new_compute_map.return_val = attr

@@ -2,7 +2,15 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Fixed
+
+- Return a user-readable error if the method called on a Mosaic or ImageStack is not supported by `dynamic-compute`
+
 ## v0.6.3 - 07/27/2023
+
+### Fixed
 
 - Removed transient errors displayed as tiles
 
