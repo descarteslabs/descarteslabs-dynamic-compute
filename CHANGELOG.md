@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.6.4 - 08/01/2023
+
 ### Fixed
 
 - Return a user-readable error if the method called on a Mosaic or ImageStack is not supported by `dynamic-compute`
