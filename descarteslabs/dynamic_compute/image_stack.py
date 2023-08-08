@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import datetime
 import json
+from copy import deepcopy
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import descarteslabs as dl
@@ -37,6 +38,9 @@ from .operations import (
     filter_scenes,
     format_bands,
     groupby,
+    is_op,
+    op_args,
+    op_type,
     select_scenes,
     set_cache_id,
     stack_scenes,
@@ -45,6 +49,106 @@ from .reductions import reduction
 from .serialization import BaseSerializationModel
 
 AXIS_NAME_TO_INDEX_MAP = {"images": (0,), "bands": (1,), "pixels": (2, 3)}
+
+
+def _optimize_image_stack_graft(
+    graft: dict, bands: Union[str, List[str]]
+) -> Optional[ImageStack]:
+    """
+    Given a graft for an image stack, determine if there is a more efficient ImageStack
+    that evaluates to the samre output.
+
+    A common use case is
+    >>> image_stack = ImageStack.from_product_bands(<product_id>, <all bands>)
+    >>> image_stack_for_viewing = image_stack.pick_bands("red green blue")
+
+    If we evaluate `image_stack_for_viewing` we'll pull all the bands, and then throw out
+    all but red, green, and blue. This is inefficient.
+
+    This code is intended to support this case where pick_bands will call this function to
+    create a simpler ImageStack if possible.
+
+    Parameters
+    ----------
+    graft: dict
+        Graft for an ImageStack.
+    bands: List[str]
+        List of bands that we actually use.
+
+    Returns
+    -------
+    new_image_stack: Optional[ImageStack]
+        Simpler ImageStack instance if possible, otherwise None.
+    """
+
+    bands = format_bands(bands)
+
+    # Every graft has a "returns" key, so we start here.
+    # key will act as a pointer into the graft as we walk
+    # the graft.
+    key = graft["returns"]
+
+    filter_functions = []
+
+    while True:
+
+        if not is_op(graft[key]):
+            return None
+
+        args = op_args(graft[key])
+
+        if op_type(graft[key]) == "stack_scenes":
+            # The first argument to stack_scenes is the source for stack_scenes
+            key = args[0]
+            continue
+
+        if op_type(graft[key]) == "filter_scenes":
+            # The first argument to filter_scenes is the source for filter_scenes
+            key = args[0]
+            # The second argument to filter_scens is the encoded filter function.
+            filter_functions.insert(0, graft[args[1]])
+            continue
+
+        if op_type(graft[key]) == "select_scenes":
+            product_id_key = args[0]
+            product_id = graft[product_id_key]
+            bands_key = args[1]
+            original_bands = format_bands(graft[bands_key])
+            options = deepcopy(args[2])
+            for options_key in options:
+                options[options_key] = graft[options[options_key]]
+            options.pop("cache_id", None)
+            break
+
+        # If we've reached this line of code, we've encountered
+        # a key that doesn't correspond to stack_scenes, filter_scenes
+        # of select_scenes, so this is not a "simple" image stack.
+        return None
+
+    # Make sure the new bands are a subset of the orignal bands.
+    if set(bands) > set(original_bands):
+        raise Exception(
+            f"selected bands {bands} are not a subset of the mosaic bands {original_bands}"
+        )
+
+    bands = " ".join(bands)
+
+    # Create a new ImageStack with the relevant bands.
+    new_image_stack = ImageStack.from_product_bands(product_id, bands, **options)
+
+    # Replay the filter operations on the new ImageStack.
+    for filter_function in filter_functions:
+
+        new_scenes_graft = filter_scenes(new_image_stack.scenes_graft, filter_function)
+
+        new_image_stack = ImageStack(
+            stack_scenes(new_scenes_graft, bands),
+            scenes_graft=new_scenes_graft,
+            bands=bands,
+            product_id=product_id,
+        )
+
+    return new_image_stack
 
 
 @dataclasses.dataclass
@@ -80,11 +184,11 @@ class ImageStack(
     # Steps 1 and 2 are handled by a "scenes" graft that evaulates to an
     # ImageCollection, not an array. ImageCollections contain the metadata
     # necessary for filtering, which we want to do *before* downloading an array.
-    #  This allows us to compose filtering operations by creating a new "scenes"
-    #  graft that applies a new filtering operation to the existing "scenes" graft.
+    # This allows us to compose filtering operations by creating a new "scenes"
+    # graft that applies a new filtering operation to the existing "scenes" graft.
     #
-    # The full graft uses the scenes graft to generate an ImageCollection and adds a instructions
-    # to accesss the raster data.
+    # The full graft uses the scenes graft to generate an ImageCollection and adds
+    # instructions to accesss the raster data.
 
     _RETURN_PRECEDENCE = 2
 
@@ -262,10 +366,17 @@ class ImageStack(
             New mosaic object.
         """
 
+        bands = format_bands(bands)
+
+        # See if there is an efficient way to do this.
+        new_image_stack = _optimize_image_stack_graft(dict(self), bands)
+        if new_image_stack:
+            return new_image_stack
+
         return ImageStack(
-            _pick_bands(self, json.dumps(format_bands(bands))),
+            _pick_bands(self, json.dumps(bands)),
             scenes_graft=self.scenes_graft,
-            bands=self.bands,
+            bands=bands,
             product_id=self.product_id,
         )
 

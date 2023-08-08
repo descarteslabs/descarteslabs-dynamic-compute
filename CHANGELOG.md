@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- Provide graft optimizations for simple but common patterns that can reduce performance.
+
 ## v0.6.4 - 08/01/2023
 
 ### Fixed

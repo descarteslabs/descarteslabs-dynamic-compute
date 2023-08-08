@@ -4,6 +4,7 @@ import dataclasses
 import datetime
 import json
 import logging
+from copy import deepcopy
 from numbers import Number
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -34,6 +35,9 @@ from .operations import (
     adaptive_mask,
     create_mosaic,
     format_bands,
+    is_op,
+    op_args,
+    op_type,
     set_cache_id,
 )
 from .reductions import reduction
@@ -245,12 +249,32 @@ class Mosaic(
             New mosaic object.
         """
 
-        # This forces us to check if the bands are legit, before we create the graft
-        format_bands(bands)
+        bands = format_bands(bands)
 
-        return Mosaic(
-            _pick_bands(self, json.dumps(format_bands(bands))),
-        )
+        return_key = self["returns"]
+        return_value = self[return_key]
+
+        if not (is_op(return_value) and op_type(return_value) == "mosaic"):
+            return Mosaic(
+                _pick_bands(self, json.dumps(format_bands(bands))),
+            )
+
+        args = op_args(return_value)
+
+        product_id = self[args[0]]
+        original_bands = format_bands(self[args[1]])
+        options = deepcopy(args[2])
+
+        for key in options:
+            options[key] = self[options[key]]
+        options.pop("cache_id", None)
+
+        if set(bands) > set(original_bands):
+            raise Exception(
+                f"selected bands {bands} are not a subset of the mosaic bands {original_bands}"
+            )
+
+        return Mosaic.from_product_bands(product_id, bands, **options)
 
     def rename_bands(self, bands):
         """Rename the bands of an array."""

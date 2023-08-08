@@ -852,3 +852,65 @@ def _geocontext_from_latlon(lat: float, lon: float) -> dl.geo.AOI:
     return dl.geo.AOI(
         bounds=bounds, crs=WGS84_CRS, shape=(1, 1), all_touched=True, align_pixels=True
     )
+
+
+def is_op(graft_node: Any) -> bool:
+    """
+    Determine if a node in a graft is an operation.
+
+    Parameters
+    ----------
+    graft_node: Any
+        Node from a graft
+
+    Returns
+    -------
+    is_op: bool
+        True if the graft_node is an operation
+    """
+
+    return isinstance(graft_node, list)
+
+
+def op_type(graft_op_node: list) -> str:
+    """
+    Determine the type of a graft operation
+
+    Parameters
+    ----------
+    graft_op_node: list
+        Graft node that is an operation
+
+    Returns
+    -------
+    name: str
+        Operation name
+    """
+
+    if not is_op(graft_op_node):
+        raise ValueError(
+            "Cannot determine op-type of graft node that is not an operation"
+        )
+
+    return graft_op_node[0]
+
+
+def op_args(graft_op_node: list) -> list:
+    """
+    Determine the arguments of a graft operation
+
+    Parameters
+    ----------
+    graft_op_node: list
+        Graft node that is an operation
+
+    Returns
+    -------
+    name: str
+        Operation name
+    """
+
+    if not is_op(graft_op_node):
+        raise ValueError("Cannot get op args of graft node that is not an operation")
+
+    return graft_op_node[1:]
