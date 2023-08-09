@@ -4,9 +4,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.7.0 - 08/09/2023
+
+### Fixed
+
+- Fixed a bug in masking where an ImageStack with one band was not able to be used as a mask
+
 ### Changed
 
 - Provide graft optimizations for simple but common patterns that can reduce performance.
+- Increase cache timeout
+- Forced certifi in the client to be at least the version that addresses a FOSSA vulnerability
 
 ## v0.6.4 - 08/01/2023
 
