@@ -402,10 +402,19 @@ def adaptive_mask(mask, data):
     leading dimensions than `mask`, `mask` is extended along those leading
     dimensions.
 
-    The use case is as follows: Assume we have raster data whose shape is
+    If `data` has more dimensions in the second position than `mask`, `mask`
+    is extended along that dimensions.
+
+    A few sample use cases follow: Assume we have raster data whose shape is
     (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
     whose shape is just (pixel-rows, pixel-cols). This function will extend the
     mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
+
+    Similarly, if the data is (scenes, bands, pixel-rows, pixel-cols), we extend
+    the mask to (scenes, bands, pixel-rows, pixel-cols) to match. If instead, the
+    mask is (scenes, bands=1, pixel-rows, pixel-cols) while the data is
+    (scenes, bands=3, pixel-rows, pixel-cols), we will extend to match both
+    cases.
 
     Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
     this will fail -- we  don't check that present dimensions agree, we only add
@@ -424,40 +433,86 @@ def adaptive_mask(mask, data):
         Masked array.
     """
 
-    mask = np.squeeze(mask)
+    if mask.ndim not in [2, 3, 4]:
+        raise Exception(
+            (
+                "Masks must be Mosaic of ImageStack objects. "
+                f"Shape of input mask was {mask.shape}."
+            )
+        )
+
+    if data.ndim not in [2, 3, 4]:
+        raise Exception(
+            (
+                "Data to be masked must be Mosaic of ImageStack objects. "
+                f"Shape of input data was {data.shape}."
+            )
+        )
 
     if (
-        len(mask.shape) == 3
+        mask.ndim == 2
+    ):  # this is a Mosiac with one band, that for whatever reason didn't come back as (1,row,cols)
+        leading_shape = data.shape[: -len(mask.shape)]
+        full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
+
+        return np.ma.masked_where(full_mask, data)
+
+    if (
+        mask.ndim == 3
     ):  # the mask is a Mosaic with multiple bands or a single band in an ImageStack
         if (
-            len(data.shape) == 4
+            data.ndim == 4
         ):  # data is an ImageStack, need to have the same number of bands
-            if mask.shape[0] != data.shape[1]:
+            if mask.shape[0] != data.shape[1] and mask.shape[0] != 1:
                 raise Exception(
-                    "Masks must be single-band or have the same number of bands as the ImageStack"
+                    (
+                        "Masks must be single-band or have the same number of bands as the ImageStack. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
                 )
-        else:  # data is an Mosaic, need to have the same number of bands
-            if mask.shape[0] != data.shape[0]:
+        else:  # data is a Mosaic, need to have the same number of bands
+            if mask.shape[0] != data.shape[0] and mask.shape[0] != 1:
                 raise Exception(
-                    "Masks must be single-band or have the same number of bands as the Mosaic"
+                    (
+                        "Masks must be single-band or have the same number of bands as the Mosaic. "
+                        f"Mask shape: {mask.shape}. Mosaic shape: {data.shape}."
+                    )
                 )
-    if len(mask.shape) == 4:  # the mask is an ImageStack
+
+        mask = np.squeeze(mask)
+        leading_shape = data.shape[: -len(mask.shape)]
+        full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
+
+        return np.ma.masked_where(full_mask, data)
+
+    if mask.ndim == 4:  # the mask is an ImageStack
         if (
-            len(data.shape) == 3
+            data.ndim == 3
         ):  # the data is a Mosaic with multiple bands or a single band in an ImageStack
             raise Exception(
-                "Cannot mask Mosaic with ImageStack, unless the ImageStack has been reduced over the 'images' axis"
+                "Cannot mask Mosaic with ImageStack, unless the ImageStack has been reduced over the 'images' axis."
             )
         else:
-            if mask.shape[0] != data.shape[0] or mask.shape[1] != data.shape[1]:
+            if mask.shape[0] != data.shape[0]:
                 raise Exception(
-                    "ImageStack masks must have the same bands and number of dates as the ImageStack you are trying to mask"
+                    (
+                        "ImageStack masks have same number of scenes as the ImageStack you are trying to mask. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
+                )
+            elif mask.shape[1] != data.shape[1] and mask.shape[1] != 1:
+                raise Exception(
+                    (
+                        "ImageStack masks must be singular band or have the same number of "
+                        "bands as the ImageStack you are trying to mask. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
                 )
 
-    leading_shape = data.shape[: -len(mask.shape)]
-    full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
+    if mask.shape[1] == 1:
+        mask = np.hstack(data.shape[1] * [mask])
 
-    return np.ma.masked_where(full_mask, data)
+    return np.ma.masked_where(mask, data)
 
 
 @operation
