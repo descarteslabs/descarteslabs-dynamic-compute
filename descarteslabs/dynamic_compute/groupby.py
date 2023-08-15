@@ -10,7 +10,7 @@ from descarteslabs.geo import AOI
 from tqdm import tqdm
 
 from .compute_map import ComputeMap
-from .operations import compute_aoi, set_cache_id
+from .operations import compute_aoi
 from .serialization import BaseSerializationModel
 
 BUILT_IN_REDUCERS = ["max", "min", "mean", "median", "sum", "std"]
@@ -116,7 +116,6 @@ class ImageStackGroupBy(ComputeMap):
     """
 
     def __init__(self, image_stack, groups_graft):
-        set_cache_id(groups_graft)
         super().__init__(groups_graft)
         self.image_stack = image_stack
         self.groups_graft = groups_graft

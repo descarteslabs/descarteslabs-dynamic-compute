@@ -38,7 +38,6 @@ from .operations import (
     is_op,
     op_args,
     op_type,
-    set_cache_id,
 )
 from .reductions import reduction
 from .serialization import BaseSerializationModel
@@ -100,7 +99,6 @@ class Mosaic(
             Optional final cutoff
         """
 
-        set_cache_id(graft)
         super().__init__(graft)
         self.bands = bands
         self.product_id = product_id
