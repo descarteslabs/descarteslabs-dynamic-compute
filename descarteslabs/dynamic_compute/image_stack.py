@@ -42,6 +42,7 @@ from .operations import (
     op_args,
     op_type,
     select_scenes,
+    set_cache_id,
     stack_scenes,
 )
 from .reductions import reduction
@@ -222,6 +223,7 @@ class ImageStack(
             Optional final cutoff for an ImageStack
         """
 
+        set_cache_id(full_graft)
         super().__init__(full_graft)
         self.scenes_graft = scenes_graft
         self.bands = bands
