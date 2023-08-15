@@ -29,6 +29,10 @@ WGS84_CRS = "EPSG:4326"
 _python_major_minor_version = PythonVersion.from_sys().major_minor
 
 
+class ApiCacheError(Exception):
+    """Raised when a request to api cache endpoints fail"""
+
+
 def operation(func: Callable):
     """
     Decorator that defines a Python function as an operation that can be executed as part of a graft.
@@ -607,11 +611,14 @@ def create_layer(
             "python_version": _python_major_minor_version,
             "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
         },
+        timeout=60,
     )
-    response.raise_for_status()
-    if response.status_code != 200:
-        content = json.loads(response.content)
-        raise Exception(content.get("detail", "An unknown error occurred."))
+
+    if response.status_code != 204:
+        detail = json.loads(response.content).get(
+            "detail", "An unknown error occurred."
+        )
+        raise ApiCacheError(f"Failed to post a layer with detail {detail}")
 
     layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
@@ -804,7 +811,8 @@ def compute_aoi(
 
     if not layer_id:
         # Create a layer from the graft if an id isn't supplied
-        # NOTE: This is sort of redundant, but layer IDs are hashes so it won't result in duplicates of existing layers
+        # NOTE: This is sort of redundant, but layer IDs are hashes so it won't
+        # result in duplicates of existing layers
         response = requests.post(
             f"{API_HOST}/layers/",
             headers={"Authorization": dl.auth.Auth.get_default_auth().token},
@@ -813,11 +821,13 @@ def compute_aoi(
                 "python_version": _python_major_minor_version,
                 "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
             },
+            timeout=60,
         )
-        response.raise_for_status()
+
         if response.status_code != 201:
-            content = json.loads(response.content)
-            raise Exception(content.get("detail", "An unknown error occurred."))
+            detail = json.loads(response.content).get("detail", "No more details")
+            raise ApiCacheError(f"Failed to post a layer with {detail=}")
+
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
     # Compute the AOI
@@ -839,8 +849,8 @@ def compute_aoi(
     )
 
     if response.status_code != 200:
-        content = json.loads(response.content)
-        raise Exception(content.get("detail", "An unknown error occurred."))
+        detail = json.loads(response.content).get("detail", "No more detail")
+        raise ApiCacheError(f"Failed to post layer with {detail=}")
 
     buf = io.BytesIO(response.content)
     payload = pickle.load(buf)
