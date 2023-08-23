@@ -319,8 +319,8 @@ def type_max(
 
 
 def binary_op(
-    a: Union[Number, np.ndarray, ComputeMap],
-    b: Union[Number, np.ndarray, ComputeMap],
+    a: Union[Number, List, np.ndarray, ComputeMap],
+    b: Union[Number, List, np.ndarray, ComputeMap],
     f: Callable[[Any, Any], Any],
     op_name: Optional[str] = None,
 ) -> ComputeMap:
@@ -332,9 +332,9 @@ def binary_op(
 
     Parameters
     ----------
-    a: ComputeMap
+    a: Union[Number, List, np.ndarray, ComputeMap]
         First operand
-    b: ComputeMap
+    b: Union[Number, List, np.ndarray, ComputeMap]
         Second operand
     f: Callable[[Any, Any], Any]
         Operation that combines the evalaution of a with the evaluation of b to produce a new value.
@@ -439,60 +439,74 @@ def _extra_init_args(cm):
 
 
 class AddMixin:
-    def __add__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __add__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a + b), op_name="sum"
         )
 
-    def __radd__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __radd__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a + b), op_name="sum"
         )
 
 
 class SubMixin:
-    def __sub__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __sub__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a - b), op_name="sub"
         )
 
-    def __rsub__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rsub__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             other, self, index_align_args(lambda a, b: b - a), op_name="sub"
         )
 
 
 class MulMixin:
-    def __mul__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __mul__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a * b), op_name="mul"
         )
 
-    def __rmul__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rmul__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a * b), op_name="mul"
         )
 
 
 class TrueDivMixin:
-    def __truediv__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __truediv__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a / b), op_name="div"
         )
 
-    def __rtruediv__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rtruediv__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: b / a), op_name="div"
         )
 
 
 class FloorDivMixin:
-    def __floordiv__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __floordiv__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a // b), op_name="floordiv"
         )
 
-    def __rfloordiv__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rfloordiv__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: b // a), op_name="floordiv"
         )
@@ -513,66 +527,70 @@ class SignedMixin:
 
 
 class ExpMixin:
-    def __pow__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __pow__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a**b), op_name="exp"
         )
 
-    def __rpow__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rpow__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: b**a), op_name="exp"
         )
 
 
 class CompareMixin:
-    def __eq__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __eq__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a == b), op_name="cmp"
         )
 
-    def __ne__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __ne__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a != b), op_name="cmp"
         )
 
-    def __gt__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __gt__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a > b), op_name="cmp"
         )
 
-    def __ge__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __ge__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a >= b), op_name="cmp"
         )
 
-    def __lt__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __lt__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a < b), op_name="cmp"
         )
 
-    def __le__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __le__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a <= b), op_name="cmp"
         )
 
 
 class LogicalMixin:
-    def __and__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __and__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a & b), op_name="and"
         )
 
-    def __rand__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __rand__(
+        self, other: Union[Number, List, np.ndarray, ComputeMap]
+    ) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a & b), op_name="and"
         )
 
-    def __or__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __or__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a | b), op_name="or"
         )
 
-    def __ror__(self, other: Union[Number, np.ndarray, ComputeMap]) -> ComputeMap:
+    def __ror__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
         return binary_op(
             self, other, index_align_args(lambda a, b: a | b), op_name="or"
         )
