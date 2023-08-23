@@ -253,22 +253,24 @@ class ComputeMap(dict, ABC):
         return deepcopy(self.init_args)
 
 
-def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray]) -> ComputeMap:
+def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray, List]) -> ComputeMap:
     """
     Return the input as a ComputeMap or raise an exception if this isn't possible.
 
     Parameters
     ----------
-    a : Union[ComputeMap, Number, Dict, numpy.ndarray]
-    Value to be represented as a ComputeMap
+    a : Union[ComputeMap, Number, Dict, numpy.ndarray, List]
+        Value to be represented as a ComputeMap
 
     Return
     ------
     cma : ComputeMap
-    Input a as a ComputeMap instance.
+        Input a as a ComputeMap instance.
     """
 
-    if isinstance(a, Number) or isinstance(a, np.ndarray):
+    if isinstance(a, Number) or isinstance(a, np.ndarray) or isinstance(a, list):
+        if isinstance(a, list):
+            a = np.array(a)
         return ComputeMap(graft_client.value_graft(a))
 
     if not isinstance(a, ComputeMap):
