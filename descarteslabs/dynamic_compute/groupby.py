@@ -4,13 +4,14 @@ import dataclasses
 from collections import namedtuple
 from collections.abc import Generator
 from copy import deepcopy
-from typing import Any, Callable, Union
+from typing import Any, Callable, Hashable, Union
 
 from descarteslabs.geo import AOI
 from tqdm import tqdm
 
 from .compute_map import ComputeMap
-from .operations import compute_aoi, set_cache_id
+from .image_stack import ImageStack
+from .operations import compute_aoi, encode_function, groupby, set_cache_id
 from .serialization import BaseSerializationModel
 
 BUILT_IN_REDUCERS = ["max", "min", "mean", "median", "sum", "std"]
@@ -19,7 +20,7 @@ ImageStackReducer = namedtuple("ImageStackReducer", ["func", "axis"])
 
 
 class ImageStackGroups:
-    def __init__(self, image_stack, groups_graft):
+    def __init__(self, image_stack: ImageStack, groups_graft: dict):
         self.groups_graft = groups_graft
         self.image_stack = image_stack
         self.computed_value = None
@@ -115,7 +116,7 @@ class ImageStackGroupBy(ComputeMap):
 
     """
 
-    def __init__(self, image_stack, groups_graft):
+    def __init__(self, image_stack: ImageStack, groups_graft: dict):
         set_cache_id(groups_graft)
         super().__init__(groups_graft)
         self.image_stack = image_stack
@@ -280,3 +281,52 @@ class ImageStackGroupBy(ComputeMap):
             ImageStackReducer(*model.reducer) if model.reducer else None
         )
         return imagestack_groupby
+
+
+def image_stack_groupby(
+    image_stack: ImageStack, grouping_func: Callable[[dict], Hashable]
+) -> ImageStackGroupBy:
+    """
+    Perform a grouping function over either images or bands and return an ImageStackGroupBy object.
+
+    Parameters
+    ----------
+    grouping_func: Callable[[dict], Hashable]
+        Function to pick out the values to group by. The function should take as
+        input a dotted-dict representing metadata for an image and should return a
+        hashable value upon which groups will be build.
+
+    Returns
+    -------
+    ImageStackGroupBy object.
+
+    Example
+    -------
+    >>> import descarteslabs.dynamic_compute as dc # doctest: +SKIP
+    >>> m = dc.map # doctest: +SKIP
+    >>> m # doctest: +SKIP
+    >>> sigma0_vv = dc.ImageStack.from_product_bands( # doctest: +SKIP
+            "esa:sentinel-1:sigma0v:v1", "vv", "20230101", "20230401" # doctest: +SKIP
+        ) # doctest: +SKIP
+    >>> # group by acquired month
+    >>> grouped_sigma = sigma0_vv.groupby(lambda x: x.acquired.month) # doctest: +SKIP
+    >>> # loop through each grouping, applying a max reducer and visualize it on the map
+    >>> for group_name, image_stack in grouped_sigma.groups.compute(m.geocontext()): # doctest: +SKIP
+            image_stack.max(axis="images").visualize(str(group_name), m, colormap="turbo") # doctest: +SKIP
+
+    """
+    if image_stack.scenes_graft is None:
+        raise Exception(
+            "This ImageStack cannot be grouped because "
+            "it no longer has image metadata. This can happen "
+            "when, e.g., an ImageStack is created from a mathematical "
+            "operation "
+        )
+
+    encoded_grouping_func = encode_function(grouping_func)
+    groups = groupby(image_stack.scenes_graft, encoded_grouping_func)
+
+    return ImageStackGroupBy(image_stack, groups)
+
+
+ImageStack.groupby = image_stack_groupby

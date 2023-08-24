@@ -24,7 +24,6 @@ from .compute_map import (
 )
 from .datetime_utils import normalize_datetime, normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
-from .groupby import ImageStackGroupBy
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
@@ -37,7 +36,6 @@ from .operations import (
     encode_function,
     filter_scenes,
     format_bands,
-    groupby,
     is_op,
     op_args,
     op_type,
@@ -463,49 +461,6 @@ class ImageStack(
             bands=self.bands,
             product_id=self.product_id,
         )
-
-    def groupby(
-        self: ImageStack, grouping_func: Callable[[np.ndarray], np.ndarray]
-    ) -> ImageStackGroupBy:
-        """
-        Perform a grouping function over either images or bands and return an ImageStackGroupBy object.
-
-        Parameters
-        ----------
-        grouping_func: Callable[[np.ndarray], np.ndarray]
-            Function to pick out the values to group by
-
-        Returns
-        -------
-        ImageStackGroupBy object.
-
-        Example
-        -------
-        >>> import descarteslabs.dynamic_compute as dc # doctest: +SKIP
-        >>> m = dc.map # doctest: +SKIP
-        >>> m # doctest: +SKIP
-        >>> sigma0_vv = dc.ImageStack.from_product_bands( # doctest: +SKIP
-                "esa:sentinel-1:sigma0v:v1", "vv", "20230101", "20230401" # doctest: +SKIP
-            ) # doctest: +SKIP
-        >>> # group by acquired month
-        >>> grouped_sigma = sigma0_vv.groupby(lambda x: x.acquired.month) # doctest: +SKIP
-        >>> # loop through each grouping, applying a max reducer and visualize it on the map
-        >>> for group_name, image_stack in grouped_sigma.compute(m.geocontext()): # doctest: +SKIP
-                image_stack.max(axis="images").visualize(str(group_name), m, colormap="turbo") # doctest: +SKIP
-
-        """
-        if self.scenes_graft is None:
-            raise Exception(
-                "This ImageStack cannot be grouped because "
-                "it no longer has image metadata. This can happen "
-                "when, e.g., an ImageStack is created from a mathematical "
-                "operation "
-            )
-
-        encoded_grouping_func = encode_function(grouping_func)
-        groups = groupby(self.scenes_graft, encoded_grouping_func)
-
-        return ImageStackGroupBy(self, groups)
 
     def reduce(
         self, reducer: Callable[[np.ndarray], np.ndarray], axis: str = "images"
