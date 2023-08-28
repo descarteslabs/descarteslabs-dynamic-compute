@@ -84,6 +84,14 @@ def groupby(*args, **kwargs):
     return None
 
 
+def filter_data(*args, **kwargs):
+    return None
+
+
+def groupby_data(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -145,6 +153,8 @@ class ComputeMap(dict, ABC):
                     ("stack_scenes", stack_scenes),
                     ("array", array),
                     ("groupby", groupby),
+                    ("filter_data", filter_data),
+                    ("groupby_data", groupby_data),
                 ],
                 debug=True,
             )()

@@ -81,7 +81,7 @@ import copy
 import itertools
 import json
 import pickle
-from typing import Dict
+from typing import Dict, Hashable
 
 import numpy as np
 import six
@@ -254,6 +254,153 @@ def compress_graft(graft: Dict) -> Dict:
 
     # We've modified the graft, perform another pass to see if more compression is possible.
     return compress_graft(new_graft)
+
+
+def normalize_graft(graft: Dict) -> Dict:
+    """
+    Given a graft, return a new graft where the non-return keys are sequentially ordered,
+    starting with '0'.
+
+    Note the purpose of this function is to aid in comparing grafts. The use case to consider is
+    that the following:
+    >>> a = Mosaic.from_product_bands(
+    >>>     "sentinel-2", "red green blue", start_datetime="2021-01-01", end_datetime="2022-01-01"
+    >>> )
+    >>> b = Mosaic.from_product_bands(
+    >>>     "sentinel-2", "red green blue", start_datetime="2021-01-01", end_datetime="2022-01-01"
+    >>> )
+    >>> dict(a) == dict(b)
+    evaluates to False, because the keys in the grafts representing a and b are assigned
+    sequentially, to avoid collision and enable composition of grafts. However, a and b are
+    the same and we want a way to assess that.
+
+    The important aspects of this function are:
+    1. It helps enable comparison of grafts, by renaming keys in a normalized way.
+    2. The return values of this function are grafts with common keys and should not be
+       used to construct grafts that might be composed, since keys will likely collide.
+
+    Parameters
+    ----------
+    graft: Dict
+        Graft for which we want a representation with re-mapped keys
+
+    Returns
+    -------
+    normalized_graft: Dict
+        Graft with re-mapped keys.
+    """
+
+    sorted_non_return_keys = sorted(filter(lambda key: key != "returns", graft.keys()))
+
+    key_mapping = {key: str(idx) for idx, key in enumerate(sorted_non_return_keys)}
+
+    normalized_graft = {}
+
+    for key in graft:
+
+        new_value = copy.deepcopy(graft[key])
+
+        if isinstance(new_value, list):
+            for i, list_item in enumerate(new_value):
+
+                if i == 0:
+                    continue
+
+                if isinstance(list_item, str):
+                    new_value[i] = key_mapping.get(list_item, list_item)
+                elif isinstance(list_item, dict):
+                    for dict_key in list_item:
+                        dict_value = list_item[dict_key]
+                        list_item[dict_key] = key_mapping.get(dict_value, dict_value)
+        elif isinstance(new_value, str):
+            new_value = key_mapping.get(new_value, new_value)
+
+        normalized_graft[key_mapping.get(key, key)] = new_value
+
+    return normalized_graft
+
+
+def splice(graft1: dict, splice_value: Hashable, graft2: dict) -> dict:
+    """
+    Splice two grafts together by replacing a particular value in graft1 with
+    the returned content of graft2.
+
+    For example
+    >>> splice(
+    >>>     {
+    >>>       "returns": "0",
+    >>>       "0": ["1", "2"],
+    >>>       "1": "splice value",
+    >>>       "2": "other value"
+    >>>     },
+    >>>     "splice value",
+    >>>     {
+    >>>       "returns": "3",
+    >>>       "3": "new value"
+    >>>     }
+    >>> )
+    returns
+    >>>     {
+    >>>       "returns": "0",
+    >>>       "0": ["3", "2"],
+    >>>       "3": "new value",
+    >>>       "2": "other value"
+    >>>     }
+
+    Parameters
+    ----------
+    graft1: dict
+        Graft into which graft2 will be spliced. Note that if splice_value is not
+        a value in graft1, graft1 will be returned.
+    splice_value: Hashable
+        Value in graft1 to replace with the "return" content from graft2
+    graft2: dict
+        Graft to be spliced into graft1, must containt a "return" key.
+
+    Returns
+    -------
+    """
+
+    assert syntax.is_graft(graft1)
+    assert syntax.is_graft(graft2)
+    keyset1 = set(graft1.keys())
+    keyset2 = set(graft2.keys())
+    assert "returns" in keyset2
+    assert (keyset1 - {"returns"}).isdisjoint(keyset2)
+
+    keys_pointing_to_splice_value = [
+        key for key in graft1 if graft1[key] == splice_value
+    ]
+
+    spliced_graft = copy.deepcopy(graft1)
+    for key in keys_pointing_to_splice_value:
+        spliced_graft.pop(key)
+
+    graft2 = copy.deepcopy(graft2)
+    splice_key = graft2.pop("returns")
+
+    key_remap = {key: splice_key for key in keys_pointing_to_splice_value}
+
+    for key in spliced_graft:
+        value = spliced_graft[key]
+
+        if isinstance(value, list):
+            value_as_list = value
+            for i, object in enumerate(value_as_list):
+
+                if isinstance(object, str):
+                    value_as_list[i] = key_remap.get(object, object)
+
+                if isinstance(object, dict):
+                    object_as_dict = object
+                    for subkey in object_as_dict:
+                        object_as_dict[subkey] = key_remap.get(
+                            object_as_dict[subkey], object_as_dict[subkey]
+                        )
+
+    spliced_graft.update(graft2)
+
+    return spliced_graft
 
 
 def apply_graft(function, *args, **kwargs):

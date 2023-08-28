@@ -34,7 +34,7 @@ from .operations import (
     _rename_bands,
     adaptive_mask,
     encode_function,
-    filter_scenes,
+    filter_data,
     format_bands,
     is_op,
     op_args,
@@ -86,8 +86,6 @@ def _optimize_image_stack_graft(
     # the graft.
     key = graft["returns"]
 
-    filter_functions = []
-
     while True:
 
         if not is_op(graft[key]):
@@ -95,16 +93,9 @@ def _optimize_image_stack_graft(
 
         args = op_args(graft[key])
 
-        if op_type(graft[key]) == "stack_scenes":
-            # The first argument to stack_scenes is the source for stack_scenes
+        if op_type(graft[key]) in ["filter_data", "stack_scenes"]:
+            # The first argument to the op is the source for the op.
             key = args[0]
-            continue
-
-        if op_type(graft[key]) == "filter_scenes":
-            # The first argument to filter_scenes is the source for filter_scenes
-            key = args[0]
-            # The second argument to filter_scens is the encoded filter function.
-            filter_functions.insert(0, graft[args[1]])
             continue
 
         if op_type(graft[key]) == "select_scenes":
@@ -132,21 +123,7 @@ def _optimize_image_stack_graft(
     bands = " ".join(bands)
 
     # Create a new ImageStack with the relevant bands.
-    new_image_stack = ImageStack.from_product_bands(product_id, bands, **options)
-
-    # Replay the filter operations on the new ImageStack.
-    for filter_function in filter_functions:
-
-        new_scenes_graft = filter_scenes(new_image_stack.scenes_graft, filter_function)
-
-        new_image_stack = ImageStack(
-            stack_scenes(new_scenes_graft, bands),
-            scenes_graft=new_scenes_graft,
-            bands=bands,
-            product_id=product_id,
-        )
-
-    return new_image_stack
+    return ImageStack.from_product_bands(product_id, bands, **options)
 
 
 @dataclasses.dataclass
@@ -154,7 +131,6 @@ class ImageStackSerializationModel(BaseSerializationModel):
     """State representation of a ImageStack instance"""
 
     full_graft: Dict
-    scenes_graft: Dict
     product_id: str
     bands: Union[str, List[str]]
     start_datetime: Optional[str] = None
@@ -193,7 +169,6 @@ class ImageStack(
     def __init__(
         self,
         full_graft: Dict,
-        scenes_graft: Optional[Dict] = None,
         bands: Optional[Union[str, List[str]]] = None,
         product_id: Optional[str] = None,
         start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
@@ -208,8 +183,6 @@ class ImageStack(
         full_graft: Dict
             Graft, which when evaluated will generate a scenes x bands x rows
             x cols array
-        scenes_graft: Dict
-            Graft, which when evaluated will generate an ImageCollection object
         bands: Union[str, List[str]]
             Bands either as space separated names in a single string or a list
             of band names
@@ -223,13 +196,11 @@ class ImageStack(
 
         set_cache_id(full_graft)
         super().__init__(full_graft)
-        self.scenes_graft = scenes_graft
         self.bands = bands
         self.product_id = str(product_id)
         self.start_datetime = normalize_datetime_or_none(start_datetime)
         self.end_datetime = normalize_datetime_or_none(end_datetime)
         self.init_args = {
-            "scenes_graft": self.scenes_graft,
             "bands": self.bands,
             "product_id": self.product_id,
             "start_datetime": self.start_datetime,
@@ -276,7 +247,6 @@ class ImageStack(
 
         return cls(
             stack_scenes(scenes_graft, bands),
-            scenes_graft,
             bands,
             product_id,
             start_datetime,
@@ -299,22 +269,7 @@ class ImageStack(
             New ImageStack object.
         """
 
-        if self.scenes_graft is None:
-            raise Exception(
-                "This ImageStack cannot be filtered because "
-                "it no longer has image metadata. This can happen "
-                "when, e.g., an ImageStack is created from a mathematical "
-                "operation "
-            )
-
-        new_scenes_graft = filter_scenes(self.scenes_graft, encode_function(f))
-
-        return ImageStack(
-            stack_scenes(new_scenes_graft, self.bands),
-            scenes_graft=new_scenes_graft,
-            bands=self.bands,
-            product_id=self.product_id,
-        )
+        return ImageStack(filter_data(dict(self), encode_function(f)))
 
     def get(self, idx: int) -> Mosaic:
         """
@@ -373,7 +328,6 @@ class ImageStack(
 
         return ImageStack(
             _pick_bands(self, json.dumps(bands)),
-            scenes_graft=self.scenes_graft,
             bands=bands,
             product_id=self.product_id,
         )
@@ -407,7 +361,6 @@ class ImageStack(
 
         return ImageStack(
             _rename_bands(self, json.dumps(format_bands(bands))),
-            scenes_graft=self.scenes_graft,
             bands=self.bands,
             product_id=self.product_id,
         )
@@ -434,10 +387,12 @@ class ImageStack(
         if not isinstance(other, ImageStack):
             other = self.pick_bands(other)
 
-        return ImageStack(
-            _concat_bands(self, other),
-            scenes_graft=self.scenes_graft,
-        )
+        if other.bands and self.bands:
+            new_bands = self.bands + other.bands
+        else:
+            new_bands = None
+
+        return ImageStack(_concat_bands(self, other), bands=new_bands)
 
     def mask(self, mask: ComputeMap) -> ImageStack:
         """
@@ -457,7 +412,6 @@ class ImageStack(
 
         return ImageStack(
             _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
-            scenes_graft=self.scenes_graft,
             bands=self.bands,
             product_id=self.product_id,
         )
@@ -484,7 +438,6 @@ class ImageStack(
 
         if axis == "bands":
             kwargs = {
-                "scenes_graft": self.scenes_graft,
                 "product_id": self.product_id,
             }
         else:
@@ -502,7 +455,6 @@ class ImageStack(
 
         return ImageStackSerializationModel(
             full_graft=dict(self),
-            scenes_graft=self.scenes_graft,
             product_id=self.product_id,
             bands=self.bands,
             start_datetime=self.start_datetime,

@@ -315,16 +315,8 @@ def image_stack_groupby(
             image_stack.max(axis="images").visualize(str(group_name), m, colormap="turbo") # doctest: +SKIP
 
     """
-    if image_stack.scenes_graft is None:
-        raise Exception(
-            "This ImageStack cannot be grouped because "
-            "it no longer has image metadata. This can happen "
-            "when, e.g., an ImageStack is created from a mathematical "
-            "operation "
-        )
-
     encoded_grouping_func = encode_function(grouping_func)
-    groups = groupby(image_stack.scenes_graft, encoded_grouping_func)
+    groups = groupby(dict(image_stack), encoded_grouping_func)
 
     return ImageStackGroupBy(image_stack, groups)
 

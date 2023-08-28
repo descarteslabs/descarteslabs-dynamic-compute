@@ -8,7 +8,9 @@ from .client import (
     isolate_keys,
     keyref_graft,
     merge_value_grafts,
+    normalize_graft,
     parametrize,
+    splice,
     value_graft,
 )
 
@@ -20,8 +22,10 @@ __all__ = [
     "apply_graft",
     "function_graft",
     "merge_value_grafts",
+    "normalize_graft",
     "guid",
     "isolate_keys",
     "parametrize",
+    "splice",
     "consistent_guid",
 ]
