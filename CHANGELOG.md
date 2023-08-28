@@ -4,6 +4,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.8.0 - 08/28/23
+
+### Added
+
+- Support to promote lists to arrays as graft elements.
+
+### Fixed
+
+- Filtering discarded compute operations, and this has been addressed
+
 ## v0.7.0 - 08/09/2023
 
 ### Fixed
