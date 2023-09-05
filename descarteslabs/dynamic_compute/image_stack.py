@@ -86,6 +86,8 @@ def _optimize_image_stack_graft(
     # the graft.
     key = graft["returns"]
 
+    filter_functions = []
+
     while True:
 
         if not is_op(graft[key]):
@@ -93,9 +95,17 @@ def _optimize_image_stack_graft(
 
         args = op_args(graft[key])
 
-        if op_type(graft[key]) in ["filter_data", "stack_scenes"]:
+        if op_type(graft[key]) in ["stack_scenes"]:
             # The first argument to the op is the source for the op.
             key = args[0]
+            continue
+
+        if op_type(graft[key]) in ["filter_data"]:
+            # The first argument to the op is the source for the op.
+            key = args[0]
+
+            code_key = args[1]
+            filter_functions.append(graft[code_key])
             continue
 
         if op_type(graft[key]) == "select_scenes":
@@ -123,7 +133,14 @@ def _optimize_image_stack_graft(
     bands = " ".join(bands)
 
     # Create a new ImageStack with the relevant bands.
-    return ImageStack.from_product_bands(product_id, bands, **options)
+    image_stack_graft = dict(
+        ImageStack.from_product_bands(product_id, bands, **options)
+    )
+
+    for filter_function in filter_functions[::-1]:
+        image_stack_graft = filter_data(image_stack_graft, filter_function)
+
+    return ImageStack(image_stack_graft, bands=bands, **options)
 
 
 @dataclasses.dataclass
