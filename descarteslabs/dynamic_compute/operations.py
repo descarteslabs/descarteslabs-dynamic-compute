@@ -847,8 +847,11 @@ def compute_aoi(
         )
 
         if response.status_code != 201:
-            detail = json.loads(response.content).get("detail", "No more details")
-            raise ApiCacheError(f"Failed to post a layer with {detail=}")
+            try:
+                detail = json.loads(response.content).get("detail", "No more details")
+            except json.decoder.JSONDecodeError:
+                detail = response.content.decode("utf-8")
+            raise ApiCacheError(f"Failed to post AOI with {detail=}")
 
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
