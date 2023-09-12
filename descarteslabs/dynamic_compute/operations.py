@@ -29,8 +29,8 @@ WGS84_CRS = "EPSG:4326"
 _python_major_minor_version = PythonVersion.from_sys().major_minor
 
 
-class ApiCacheError(Exception):
-    """Raised when a request to api cache endpoints fail"""
+class UnauthorizedUserError(requests.exceptions.HTTPError):
+    """Raised when a user does not have the dynamic-compute-user group"""
 
 
 def operation(func: Callable):
@@ -614,11 +614,16 @@ def create_layer(
         timeout=60,
     )
 
-    if response.status_code != 204:
-        detail = json.loads(response.content).get(
-            "detail", "An unknown error occurred."
-        )
-        raise ApiCacheError(f"Failed to post a layer with detail {detail}")
+    try:
+        response.raise_for_status()
+    except Exception as e:
+        if e.response.status_code == 403:
+            raise UnauthorizedUserError(
+                "User does not have access to dynamic-compute. "
+                "If you believe this to be an error, contact support@descarteslabs.com"
+            )
+        else:
+            raise e
 
     layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
@@ -846,12 +851,16 @@ def compute_aoi(
             timeout=60,
         )
 
-        if response.status_code != 201:
-            try:
-                detail = json.loads(response.content).get("detail", "No more details")
-            except json.decoder.JSONDecodeError:
-                detail = response.content.decode("utf-8")
-            raise ApiCacheError(f"Failed to post AOI with {detail=}")
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedUserError(
+                    "User does not have access to dynamic-compute. "
+                    "If you believe this to be an error, contact support@descarteslabs.com"
+                )
+            else:
+                raise e
 
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
 
@@ -873,9 +882,16 @@ def compute_aoi(
         },
     )
 
-    if response.status_code != 200:
-        detail = json.loads(response.content).get("detail", "No more detail")
-        raise ApiCacheError(f"Failed to post layer with {detail=}")
+    try:
+        response.raise_for_status()
+    except Exception as e:
+        if e.response.status_code == 403:
+            raise UnauthorizedUserError(
+                "User does not have access to dynamic-compute. "
+                "If you believe this to be an error, contact support@descarteslabs.com"
+            )
+        else:
+            raise e
 
     buf = io.BytesIO(response.content)
     payload = pickle.load(buf)

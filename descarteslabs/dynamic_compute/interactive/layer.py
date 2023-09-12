@@ -12,7 +12,12 @@ import ipywidgets as widgets
 import requests
 import traitlets
 
-from ..operations import API_HOST, _python_major_minor_version, set_cache_id
+from ..operations import (
+    API_HOST,
+    UnauthorizedUserError,
+    _python_major_minor_version,
+    set_cache_id,
+)
 from . import parameters
 from .clearable import ClearableOutput
 from .tile_url import validate_scales
@@ -296,7 +301,17 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                 "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
             },
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except Exception as e:
+            if e.response.status_code == 403:
+                raise UnauthorizedUserError(
+                    "User does not have access to dynamic-compute. "
+                    "If you believe this to be an error, contact support@descarteslabs.com"
+                )
+            else:
+                raise e
+
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
         self.set_trait("layer_id", layer_id)
         # URL encode query parameters
