@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "descarteslabs-dynamic-compute"
-version = "0.8.0"
+version = "0.9.0"
 description = ""
 license = "Apache-2.0"
 authors = ["Descartes Labs"]
@@ -18,7 +18,7 @@ utm = "^0.7.0"
 pyproj = "^3.4.1"
 geojson = ">=2.5.0"
 numpy = "<=1.24.2"
-descarteslabs = "~2.0.3"
+descarteslabs = ">=2.0.3,<2.2.0"
 cloudpickle = "1.6.0"
 certifi = ">=2023.7.22"
 

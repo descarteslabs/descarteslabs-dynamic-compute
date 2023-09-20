@@ -2,7 +2,23 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## v0.9.0 - 09/20/23
+
+### Fixed
+
+- Addressed viewing padded mosaics across the anti-meridian.
+- Fixed a bug where we expected an error to be a json and it was actually a bytes string
+- Addressed a rare chunked-mosaic ordering corner-case.
+- Addressed a bug in `pick_bands`
+- Removed the ApiCacheError, since not all errors returned here are cache errors, and use `.raise_for_status()` instead of trying to `json.loads()` the error since this was causing issues
+
+### Added
+
+- Nicer error messages if you don't have dynamic-compute-user as one of your groups
+
+### Changed
+
+- Allowing relaxed scale specifications for `Mosaic.visualize`
 
 ## v0.8.0 - 08/28/23
 
