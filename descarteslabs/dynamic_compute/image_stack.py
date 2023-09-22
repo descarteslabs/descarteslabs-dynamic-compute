@@ -263,8 +263,8 @@ class ImageStack(
         )
 
         return cls(
-            stack_scenes(scenes_graft, bands),
-            bands,
+            stack_scenes(scenes_graft, formatted_bands),
+            formatted_bands,
             product_id,
             start_datetime,
             end_datetime,
