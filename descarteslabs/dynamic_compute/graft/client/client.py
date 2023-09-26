@@ -81,7 +81,7 @@ import copy
 import itertools
 import json
 import pickle
-from typing import Dict, Hashable
+from typing import Dict, Hashable, List
 
 import numpy as np
 import six
@@ -401,6 +401,104 @@ def splice(graft1: dict, splice_value: Hashable, graft2: dict) -> dict:
     spliced_graft.update(graft2)
 
     return spliced_graft
+
+
+def op_args(op_list: List) -> List:
+    """
+    Given a list that encodes an operation and its arguments return the arguments
+
+    Parameters
+    ----------
+    op_list: List
+        List that encodes an operation and its arguments
+
+    Returns
+    -------
+        Arguments
+    """
+    return op_list[1:]
+
+
+def find_unreferenced(graft: dict) -> List[str]:
+    """
+    Given a graft, return a list of unreferenced keys.
+
+    Parameters
+    ----------
+    graft: dict
+        Graft in which we should count references.
+
+    Returns
+    -------
+    unreferences: List[str]
+        List of keys in the graft that are not referenced.
+    """
+
+    keys = graft.keys()
+    count = {key: 0 for key in keys}
+    for graft_value in graft.values():
+
+        if not isinstance(graft_value, list):
+            continue
+
+        for obj in op_args(graft_value):
+            if isinstance(obj, str) and obj in count:
+                count[obj] += 1
+
+            elif isinstance(obj, dict):
+                for obj_value in obj.values():
+                    if obj_value in count:
+                        count[obj_value] += 1
+
+    return [key for key in count if count[key] == 0]
+
+
+def unset_all_cache_ids(graft: dict) -> dict:
+    """
+    Given a graft, return a new graft that has no cache IDs set.
+
+    Parameters
+    ----------
+    graft: dict
+        Graft possibly containing graft IDs
+
+    Returns:
+    new_graft: dict
+        Copy of input graft without graft IDs.
+    """
+
+    new_graft = copy.deepcopy(graft)
+
+    cache_ids = []
+    for graft_value in new_graft.values():
+
+        if not isinstance(graft_value, list):
+            continue
+
+        objs_to_remove = []
+        for obj in op_args(graft_value):
+
+            if not isinstance(obj, dict):
+                continue
+
+            for obj_key, obj_value in obj.items():
+                if obj_key == "cache_id":
+                    cache_ids.append(obj_value)
+                    break
+
+            obj.pop("cache_id", None)
+            if len(obj) == 0:
+                objs_to_remove.append(obj)
+
+        for obj_to_remove in objs_to_remove:
+            graft_value.remove(obj_to_remove)
+
+    unreferenced = find_unreferenced(new_graft)
+    for cache_id in cache_ids:
+        if cache_id in unreferenced:
+            new_graft.pop(cache_id, None)
+
+    return new_graft
 
 
 def apply_graft(function, *args, **kwargs):
