@@ -1,4 +1,5 @@
 import base64
+import copy
 import functools
 import hashlib
 import io
@@ -541,6 +542,74 @@ def _length(arr, *args, **kwargs):
     return arr.shape[0], {"return_type": "int"}
 
 
+def _normalize_graft(graft: Dict) -> Dict:
+    """
+    This function should only be used internally, in the context of generating cache keys.
+
+    Given a graft, return a new graft where the non-return keys are sequentially ordered,
+    starting with '0'.
+
+    Note the purpose of this function is to aid in comparing grafts. The use case to consider is
+    that the following:
+    >>> a = Mosaic.from_product_bands(
+    >>>     "sentinel-2", "red green blue", start_datetime="2021-01-01", end_datetime="2022-01-01"
+    >>> )
+    >>> b = Mosaic.from_product_bands(
+    >>>     "sentinel-2", "red green blue", start_datetime="2021-01-01", end_datetime="2022-01-01"
+    >>> )
+    >>> dict(a) == dict(b)
+    evaluates to False, because the keys in the grafts representing a and b are assigned
+    sequentially, to avoid collision and enable composition of grafts. However, a and b are
+    the same and we want a way to assess that.
+
+    The important aspects of this function are:
+    1. It helps enable comparison of grafts, by renaming keys in a normalized way.
+    2. The return values of this function are grafts with common keys and should not be
+       used to construct grafts that might be composed, since keys will likely collide.
+
+    Parameters
+    ----------
+    graft: Dict
+        Graft for which we want a representation with re-mapped keys
+
+    Returns
+    -------
+    normalized_graft: Dict
+        Graft with re-mapped keys.
+    """
+
+    sorted_non_return_keys = sorted(
+        filter(lambda key: key != "returns", graft.keys()), key=lambda value: int(value)
+    )
+
+    key_mapping = {key: str(idx) for idx, key in enumerate(sorted_non_return_keys)}
+
+    normalized_graft = {}
+
+    for key in graft:
+
+        new_value = copy.deepcopy(graft[key])
+
+        if isinstance(new_value, list):
+            for i, list_item in enumerate(new_value):
+
+                if i == 0:
+                    continue
+
+                if isinstance(list_item, str):
+                    new_value[i] = key_mapping.get(list_item, list_item)
+                elif isinstance(list_item, dict):
+                    for dict_key in list_item:
+                        dict_value = list_item[dict_key]
+                        list_item[dict_key] = key_mapping.get(dict_value, dict_value)
+        elif isinstance(new_value, str):
+            new_value = key_mapping.get(new_value, new_value)
+
+        normalized_graft[key_mapping.get(key, key)] = new_value
+
+    return normalized_graft
+
+
 def set_cache_id(graft: Dict):
     """Set the cache ID of an operation.
 
@@ -551,7 +620,8 @@ def set_cache_id(graft: Dict):
     graft : dict
         The graft where the cache ID will be set.
     """
-    cache_id = hashlib.sha256(bytes(json.dumps(graft), "utf-8")).hexdigest()
+    normalized_graft = _normalize_graft(graft)
+    cache_id = hashlib.sha256(bytes(json.dumps(normalized_graft), "utf-8")).hexdigest()
 
     returned_key = graft["returns"]
     returned_op = graft[returned_key]

@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased Changes
+
+### Changed
+
+- Normalized cache id generation to reduce identical data within a cache
+
 ## v0.9.1 - 09/25/23
 
 ### Fixed
