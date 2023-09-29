@@ -484,7 +484,8 @@ def adaptive_mask(mask, data):
                     )
                 )
 
-        mask = np.squeeze(mask)
+        if mask.shape[0] == 1:
+            mask = np.squeeze(mask, axis=0)
         leading_shape = data.shape[: -len(mask.shape)]
         full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
 
