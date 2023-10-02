@@ -4,7 +4,7 @@ import dataclasses
 import datetime
 import json
 from copy import deepcopy
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, Hashable, List, Optional, Tuple, Union
 
 import descarteslabs as dl
 import numpy as np
@@ -190,6 +190,7 @@ class ImageStack(
         product_id: Optional[str] = None,
         start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
         end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        pad: Optional[int] = 0,
     ):
         """
         Initialize a new instance of ImageStack. Users should rely on
@@ -209,7 +210,12 @@ class ImageStack(
             Optional initial cutoff for an ImageStack
         end_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
             Optional final cutoff for an ImageStack
+        pad: Optional[int]
+            Optional padding argument.
         """
+
+        assert isinstance(pad, int)
+        assert pad >= 0
 
         set_cache_id(full_graft)
         super().__init__(full_graft)
@@ -222,6 +228,7 @@ class ImageStack(
             "product_id": self.product_id,
             "start_datetime": self.start_datetime,
             "end_datetime": self.end_datetime,
+            "pad": pad,
         }
 
     @classmethod
@@ -259,11 +266,11 @@ class ImageStack(
 
         formatted_bands = " ".join(format_bands(bands))
         scenes_graft = select_scenes(
-            product_id, formatted_bands, start_datetime, end_datetime
+            product_id, formatted_bands, start_datetime, end_datetime, **kwargs
         )
 
         return cls(
-            stack_scenes(scenes_graft, formatted_bands),
+            stack_scenes(scenes_graft, formatted_bands, **kwargs),
             formatted_bands,
             product_id,
             start_datetime,
@@ -495,6 +502,135 @@ class ImageStack(
         return cls(**ImageStackSerializationModel.from_json(data).dict())
 
 
+def dot_propagation_for_two_image_stacks(
+    properties_a: List[dict], properties_b: List[dict]
+) -> dict:
+    """
+    Handle property propagation for the case that the input to dot is two ImageStacks and
+    the output is a Mosaic.
+
+    Parameters
+    ----------
+    properties_a: List[dict]
+        Per image properties of the first ImageStack
+    properties_b: List[dict]
+        Per image properties of the second ImageStack
+
+    Returns
+    -------
+    properties: dict
+        Properties for the resulting Mosaic
+    """
+    if len(properties_a) != len(properties_b):
+        raise Exception(
+            "Cannot apply dot to images stacks with different numbers of images"
+        )
+
+    pad_a = properties_a[0].get("pad", 0)
+    pad_b = properties_b[0].get("pad", 0)
+
+    if pad_a != pad_b:
+        raise Exception("Cannot dot objects with different padding")
+
+    properties = {"pad": pad_a}
+
+    product_a = properties_a[0].get("product_id", None)
+    product_b = properties_b[0].get("product_id", None)
+
+    if product_a:
+        properties["product_id"] = product_a
+
+    if product_b and product_b != product_a:
+        properties["other_product_ids"] = [product_b]
+
+    bands_a = properties_a[0].get("bands", [])
+    bands_b = properties_b[0].get("bands", [])
+
+    if len(bands_a) and len(bands_b) and len(bands_a) != len(bands_b):
+        raise Exception(
+            "Cannot apply dot to ImageStacks with different numbers of bands"
+        )
+
+    if bands_a == bands_b:
+        properties["bands"] = bands_a
+    else:
+        properties["bands"] = [
+            f"{band_a}_dot_{band_b}" for band_a, band_b in zip(bands_a, bands_b)
+        ]
+
+    return properties
+
+
+def keys_with_fixed_values(list_of_dict: List[Dict]) -> List[Hashable]:
+    """
+    Given a list of dictionaries return a list of keys that are
+    present in all dictionaries and for which the value is the same
+    for all dictionaries.
+
+    Parameters
+    ----------
+    list_of_dicts: List[Dict]
+        List of dictionaries for which we should find "stable" keys
+
+    Returns
+    -------
+    stable_keys: List[Hashable]
+        List of keys that were present in all dictionaries and had the same value.
+    """
+    stable_keys = []
+
+    for key, value in list_of_dict[0].items():
+        unique = True
+
+        for dct in list_of_dict[1:]:
+            try:
+                if value != dct[key]:
+                    unique = False
+                    break
+            except KeyError:
+                unique = False
+                break
+
+        if unique:
+            stable_keys.append(key)
+
+    return stable_keys
+
+
+def dot_property_propagation_for_image_stack_and_matrix(
+    properties: List[dict], size: int
+) -> List[dict]:
+    """
+    Handle property propagation for the case that the input to dot is an ImageStacks and
+    a matrix.
+
+    The matrix multiplication will result in a new image stack where each new image is a weighted sum
+    of the input images. As such, the output images may not have an "acquired" entry that's meaninful.
+
+    This function returns a properties list that contains entries that are unchanging in the
+    input properties.
+
+
+    Parameters
+    ----------
+    properties: List[dict]
+        Per image properties of the ImageStack
+    size: int
+        Number of scenes in the output image stack
+
+    Returns
+    -------
+    properties: List[dict]
+        Properties for the resulting ImageStack
+    """
+
+    property_base = {
+        key: properties[0][key] for key in keys_with_fixed_values(properties)
+    }
+
+    return [property_base for _ in range(size)]
+
+
 def dot(
     a: Union[ImageStack, np.ndarray], b: Union[ImageStack, np.ndarray]
 ) -> ImageStack:
@@ -546,7 +682,7 @@ def dot(
                     a,
                     b,
                     lambda aa, bb: np.einsum("ibrc,ibrc->brc", aa, bb),
-                    lambda pa, pb, **kwargs: {},
+                    dot_propagation_for_two_image_stacks,
                 )
             )
         else:
@@ -564,7 +700,9 @@ def dot(
                         a,
                         as_compute_map(b),
                         lambda aa, bb: np.einsum("ibrc,ij->jbrc", aa, bb),
-                        lambda pa, pb, **kwargs: {},
+                        lambda pa, pb, **kwargs: dot_property_propagation_for_image_stack_and_matrix(
+                            pa, b.shape[1]
+                        ),
                     )
                 )
             elif len(b.shape) == 1:
@@ -575,6 +713,7 @@ def dot(
                         a,
                         as_compute_map(b),
                         lambda aa, bb: np.einsum("ibrc,i->brc", aa, bb),
+                        lambda pa, pb, **kwargs: {"pad": pa[0].get("pad", 0)},
                     )
                 )
             else:
@@ -596,7 +735,9 @@ def dot(
                     as_compute_map(a),
                     b,
                     lambda aa, bb: np.einsum("ij,jbrc->ibrc", aa, bb),
-                    lambda pa, pb, **kwargs: {},
+                    lambda pa, pb, **kwargs: dot_property_propagation_for_image_stack_and_matrix(
+                        pb, a.shape[0]
+                    ),
                 )
             )
         elif len(a.shape) == 1:
@@ -607,6 +748,7 @@ def dot(
                     as_compute_map(a),
                     b,
                     lambda aa, bb: np.einsum("i,ibrc->brc", aa, bb),
+                    lambda pa, pb, **kwargs: {"pad": pb[0].get("pad", 0)},
                 )
             )
         else:

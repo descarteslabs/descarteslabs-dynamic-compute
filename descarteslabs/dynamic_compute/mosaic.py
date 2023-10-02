@@ -475,6 +475,51 @@ class Mosaic(
         return cls(**MosaicSerializationModel.from_json(data).dict())
 
 
+def property_propagation_for_dot(
+    properties_a: dict, properties_b: dict, **kwargs
+) -> dict:
+    """
+    Provide logic for property propagation used in the `dot` operation
+
+    Parameters
+    ----------
+    properties_a: dict
+        Properties for the first argument
+    properties_b: dict
+        Properties for the second argument
+
+    Returns
+    -------
+    new_properties: dict
+        Properties for the result of the dot operation.
+    """
+    new_properties = {}
+
+    # Note that if a or b is a matrix it will have no padding.
+    pad_a = properties_a.get("pad", None)
+    pad_b = properties_b.get("pad", None)
+
+    if pad_a and pad_b and pad_a != pad_b:
+        raise Exception("Cannot dot objects with different padding")
+
+    if pad_a:
+        new_properties["pad"] = pad_a
+    elif pad_b:
+        new_properties["pad"] = pad_b
+
+    pid_a = properties_a.get("product_id", None)
+    pid_b = properties_b.get("product_id", None)
+
+    if pid_a:
+        new_properties["product_id"] = pid_a
+        if pid_b and pid_a != pid_b:
+            new_properties["other_product_id"] = pid_b
+    elif pid_b:
+        new_properties["product_id"] = pid_b
+
+    return new_properties
+
+
 def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
     """
     Specific implementation of dot for Mosaic objects. Either a's type or b's
@@ -522,7 +567,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     a,
                     b,
                     lambda aa, bb: np.einsum("irc,irc->rc", aa, bb)[None, ...],
-                    lambda pa, pb, **kwargs: {},
+                    property_propagation_for_dot,
                 )
             )
         else:
@@ -540,7 +585,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                         a,
                         as_compute_map(b),
                         lambda aa, bb: np.einsum("irc,ij->jrc", aa, bb),
-                        lambda pa, pb, **kwargs: {},
+                        property_propagation_for_dot,
                     )
                 )
             elif len(b.shape) == 1:
@@ -571,7 +616,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     as_compute_map(a),
                     b,
                     lambda aa, bb: np.einsum("ij,jrc->irc", aa, bb),
-                    lambda pa, pb, **kwargs: {},
+                    property_propagation_for_dot,
                 )
             )
         elif len(a.shape) == 1:

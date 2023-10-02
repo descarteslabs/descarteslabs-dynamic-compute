@@ -8,7 +8,7 @@ import os
 import pickle
 from copy import deepcopy
 from importlib.metadata import version
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlencode
 
 import cloudpickle
@@ -81,124 +81,209 @@ def _apply_unary(arg, value_func, prop_func=lambda x: x):
     return encoded_func(arg)
 
 
-def _default_property_propagation(
-    props0: Dict,
-    props1: Dict,
-    band_op: Optional[str] = "same",
-    op_name: Optional[str] = None,
-) -> Dict:
+def _get_pid_bands_pad(
+    properties: Union[List[dict], dict]
+) -> Tuple[Optional[str], Optional[List], Optional[int]]:
     """
-    All graft operations, e.g. "code", "mosaic" and "array" return a value
-    and properties associated with that value. For "mosaic" and "array" the
-    returned properties are associated with underlying mosaic or array
-    respectively. For "code" the returned properties will depend on operation
-    and the input properties.
-
-    This function provides a *default* implementation for binary operations.
-    Note that there are plenty of binary operations where this is not the
-    appropriate result.
-
-    Note also that an essential part of this function is to raise a reasonable
-    exception if the properties are incompatible.
-
-    The logic is as follows: If there are multiple bands in both properties, the
-    (ordered) bands lists have to be the same, i.e. ["red", "green", "blue"] is
-    not the same as ["blue", "green", "red"]. Note this differs from WF, and
-    likely will be changed.
-
-    If one has one band, and the other has multiple bands, the multiple bands are
-    returned.
-
-    If one has bands and the other has a shape, the first entry in the shape must
-    agree with the number of bands, and the bands are returned.
-
-    If neither has bands, but both have shape, the shapes must agree and the shape
-    is returned
-
-    If one has shape and the other has neither bands nor shape, the shape is returned.
-
-    If neither has shape or bands, the common agreed upon parameters are returend.
+    Given a properties object return the product id, bands and padding,
+    if they are available
 
     Parameters
     ----------
-    props0: Dict
-        Properties associated with the first argument
-    props1: Dict
-        Properties associated with the second argument
-    band_op: Optional[str]
-        Band operation to perform, must be one of "same", "concat".
-        "same" requires that if there are multiple bands in both properties,
-        they must be the same. "concat" will generate new bands that is the
-        concatination of the input bands.
-    op_name: Optional[str]
-        Name of operation, e.g. `sum` or `mul` to be used when creating a new
-        band name out of two single bands, e.g. `red` + `vv` is `red_sum_vv`
+    properties: Union[List[dict], dict]
+        Properties for dynamic compute object, could be a dict, e.g. for a Mosaic,
+        of a List, e.g. for an ImageStack.
 
     Returns
     -------
-    props: Dict
-        New resulting properties.
+    pid: Optional[str]
+        Product ID for this properties object if there is one, otherwise None
+    bands: Optional[List]
+        Bands associated with this properties object if data are available,
+        otherwise None
+    pad: Optional[int]
+        Padding associated with this properties object if it's available,
+        otherwise None
     """
+    if isinstance(properties, List):
+        if len(properties) > 0:
+            return _get_pid_bands_pad(properties[0])
+        else:
+            return None, None, None
 
+    return (
+        properties.get("product_id", None),
+        properties.get("bands", None),
+        properties.get("pad", None),
+    )
+
+
+def _default_property_propagation(
+    props0: Union[List[dict], dict],
+    props1: Union[List[dict], dict],
+    band_op: Optional[str] = "same",
+    op_name: Optional[str] = None,
+) -> Union[List[Dict], Dict]:
+    """This function provides a default implementation of property propagation.
+
+    Dynamic Compute tracks data and metadata through steps of an
+    evaluation.  Binary operations take two pieces of data and two
+    pieces of metadata (often called properties) to genrate a new
+    piece of data and a new piece of metadata. Dynamic Compute creates
+    binary operations with `_apply_binary`.
+
+    `_apply_binary` requires two operations, first, a function that
+    combines the two pieces of input data, second a function that
+    combines the two pieces of metadata to generate the metadata for
+    the result of the binary operation.
+
+    This function provides a default implementation of the second
+    function required by `_apply_binary`. It may not be appropriate in
+    all cases.
+
+    Parameters
+    ----------
+    props0: Union[List[dict], dict]
+        Properties (metadata for the first operand)
+    props1: Union[List[dict], dict]
+        Properties (metadata for the second operand)
+    band_op: Optional[str] = "same"
+        Either "same" meaning that bands are to be operated on together or
+        "concat" meaning that input bands will be concatenated together.
+    op_name: Optional[str] = None
+        The name of the operation. This is used to create band names for the
+        result
+
+    Returns
+    -------
+    new_props: Union[List[dict], dict]
+        Properties for the result of the binary operation
+    """
     assert band_op in ["same", "concat"], f"Unrecognized band_op {band_op}"
 
+    pid0, bands0, pad0 = _get_pid_bands_pad(props0)
+    pid1, bands1, pad1 = _get_pid_bands_pad(props1)
+
+    if pad0 and pad1 and pad0 != pad1:
+        raise Exception(f"Operands have different padding {pad0} {pad1}")
+
+    new_pad = None
+    if pad0:
+        new_pad = pad0
+    elif pad1:
+        new_pad = pad1
+    else:
+        new_pad = pad0
+
+    new_bands = None
+
+    if band_op == "same":
+        # We aren't concatenating bands.
+
+        if bands0 and bands1:
+            # We have band information.
+
+            if len(bands0) > 1 and len(bands1) > 1:
+                # If either sets of bands has length 1, then we might be
+                # using one to mask the other.
+
+                if len(bands0) != len(bands1):
+                    # We aren't masking and so we need the same number of bands.
+                    raise Exception(
+                        f"Operands have different numbers of bands {len(bands0)} {len(bands1)}"
+                    )
+
+                elif bands0 == bands1:
+                    new_bands = bands0
+                else:
+                    new_bands = [
+                        f"{band0}_{op_name}_{band1}"
+                        for band0, band1 in zip(bands0, bands1)
+                    ]
+
+            else:
+                if len(bands0) == 1:
+                    new_bands = bands1
+                else:
+                    new_bands = bands0
+
+        elif bands0:
+            new_bands = bands0
+
+        elif bands1:
+            new_bands = bands1
+    else:
+        # We are concatenating bands
+
+        if not bands0 or not bands1:
+            raise Exception("Cannot concat bands when bands for one operand is missing")
+        else:
+            new_bands = bands0 + bands1
+
+    new_pid = None
+    other_pid = None
+    if pid0 and not pid1:
+        new_pid = pid0
+    elif pid1 and not pid0:
+        new_pid = pid1
+    elif pid0 and pid1 and pid0 != pid1:
+        new_pid = pid0
+        other_pid = pid1
+
+    if isinstance(props0, dict) and isinstance(props1, list):
+        props0, props1 = props1, props0
+
+    props0 = deepcopy(props0)
+
     if isinstance(props0, dict):
-        bands0 = props0.get("bands", [])
-    else:
-        bands0 = []
 
-    if isinstance(props1, dict):
-        bands1 = props1.get("bands", [])
-    else:
-        bands1 = []
+        props0.pop("shape", None)
 
-    if band_op == "concat":
-        if len(bands0) == 0 or len(bands1) == 0:
-            raise Exception("Cannot concatenate bands for an object with no bands.")
-        new_props = deepcopy(props0)
-        new_props["bands"] = bands0 + bands1
-        return new_props
+        props0.pop("pad", None)
+        if new_pad:
+            props0["pad"] = new_pad
+        else:
+            props0["pad"] = 0
 
-    # Let's avoid some if clauses by ensuring that the first argument has at least as many
-    # bands as the second.
-    if len(bands1) > len(bands0):
-        return _default_property_propagation(props1, props0, band_op=band_op)
+        props0.pop("bands", None)
+        if new_bands:
+            props0["bands"] = new_bands
 
-    if len(bands1) > 1:
-        if bands0 != bands1:
-            raise Exception(f"Incompatible bands {bands0} and {bands1}")
+        props0.pop("product_id", None)
+        if new_pid:
+            props0["product_id"] = new_pid
 
-        new_props = deepcopy(props0)
+        other_product_ids = props0.get("other_product_ids", [])
+        if other_pid:
+            other_product_ids.append(other_pid)
+            props0["other_product_ids"] = other_product_ids
 
-        if "product_id" in props1:
-            product_id1 = props1["product_id"]
-            if product_id1 != props0.get("product_id", ""):
-                new_props.setdefault("other_product_ids", []).append(product_id1)
+        return props0
 
-        return new_props
+    elif isinstance(props0, list):
 
-    if len(bands1) == 1 and len(bands0) > 1:
-        new_props = deepcopy(props0)
+        for prop in props0:
 
-        if "product_id" in props1:
-            product_id1 = props1["product_id"]
-            if product_id1 != props0.get("product_id", ""):
-                new_props.setdefault("other_product_ids", []).append(product_id1)
+            prop.pop("shape", None)
 
-        return new_props
+            prop.pop("pad", None)
+            if new_pad:
+                prop["pad"] = new_pad
+            else:
+                prop["pad"] = 0
 
-    if len(bands1) == 1 and len(bands0) == 1:
-        new_props = deepcopy(props0)
+            prop.pop("bands", None)
+            if new_bands:
+                prop["bands"] = new_bands
 
-        new_props["bands"] = [f"{bands0[0]}_{op_name}_{bands1[0]}"]
-        if "product_id" in props1:
-            product_id1 = props1["product_id"]
-            if product_id1 != props0.get("product_id", ""):
-                new_props.setdefault("other_product_ids", []).append(product_id1)
+            prop.pop("product_id", None)
+            if new_pid:
+                prop["product_id"] = new_pid
 
-        return new_props
+            prop.pop("other_product_id", None)
+            if other_pid:
+                prop["other_product_id"] = other_pid
 
-    if len(bands1) == 0:
         return props0
 
     return {}
@@ -209,11 +294,19 @@ def _apply_binary(
     arg1: Dict,
     value_func: Callable[[Any, Any], Any],
     prop_func: Optional[
-        Callable[[Dict, Dict, Optional[str], Optional[str]], Dict]
+        Callable[
+            [
+                Union[List[dict], dict],
+                Union[List[dict], dict],
+                Optional[str],
+                Optional[str],
+            ],
+            Union[List[dict], dict],
+        ]
     ] = _default_property_propagation,
     band_op="same",
     op_name=None,
-):
+) -> Dict:
     """
     Create a graft that applies a binary operation to two input grafts.
 
@@ -765,6 +858,7 @@ def select_scenes(
     bands: str,
     start_datetime: str,
     end_datetime: str,
+    pad: int = 0,
 ) -> Dict:
     """
     Select, scenes based on date, from a product in the Descartes Labs catalog.
@@ -791,6 +885,7 @@ def select_scenes(
         bands,
         start_datetime=start_datetime,
         end_datetime=end_datetime,
+        pad=pad,
     )
 
 
@@ -816,7 +911,7 @@ def filter_scenes(scenes_graft: Dict, encoded_filter_func: str) -> Dict:
     return graft_client.apply_graft("filter_scenes", scenes_graft, encoded_filter_func)
 
 
-def stack_scenes(scenes_graft: Dict, bands: str) -> Dict:
+def stack_scenes(scenes_graft: Dict, bands: str, pad: int = 0) -> Dict:
     """
     Given a graft that evaluates to an ImageCollection, create a graft that evaluates to
     an image stack array associated with that ImageCollection
@@ -825,6 +920,10 @@ def stack_scenes(scenes_graft: Dict, bands: str) -> Dict:
     ----------
     scenes_graft: Dict
         A graft, which when evaluated generates an ImageCollection.
+    bands: str
+        Space separated list of band names
+    pad: int
+        Padding value, defaults to zero
 
     Returns
     -------
@@ -833,7 +932,7 @@ def stack_scenes(scenes_graft: Dict, bands: str) -> Dict:
         the ImageCollection
 
     """
-    return graft_client.apply_graft("stack_scenes", scenes_graft, bands)
+    return graft_client.apply_graft("stack_scenes", scenes_graft, bands, pad=pad)
 
 
 def filter_data(stack_graft: Dict, encoded_filter_func: str) -> Dict:
