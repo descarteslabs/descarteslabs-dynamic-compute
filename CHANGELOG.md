@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased Changes
 
+## v0.9.3 - 10/10/23
+
+### Fixed
+
+- Fixed a bug that didn't propagate tile padding through graft evaluation correctly.
+
 ## v0.9.2 - 09/29/23
 
 ### Changed
