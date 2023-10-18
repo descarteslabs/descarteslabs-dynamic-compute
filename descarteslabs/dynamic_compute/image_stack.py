@@ -39,6 +39,7 @@ from .operations import (
     is_op,
     op_args,
     op_type,
+    reset_graft,
     select_scenes,
     set_cache_id,
     stack_scenes,
@@ -152,6 +153,12 @@ class ImageStackSerializationModel(BaseSerializationModel):
     bands: Union[str, List[str]]
     start_datetime: Optional[str] = None
     end_datetime: Optional[str] = None
+
+    @classmethod
+    def from_json(cls, data: str) -> ImageStackSerializationModel:
+        base_obj = super().from_json(data)
+        base_obj.full_graft = reset_graft(base_obj.full_graft)
+        return base_obj
 
 
 class ImageStack(

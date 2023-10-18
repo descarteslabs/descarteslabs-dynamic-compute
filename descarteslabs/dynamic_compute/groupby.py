@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 from .compute_map import ComputeMap
 from .image_stack import ImageStack
-from .operations import compute_aoi, encode_function, groupby, set_cache_id
+from .operations import compute_aoi, encode_function, groupby, reset_graft, set_cache_id
 from .serialization import BaseSerializationModel
 
 BUILT_IN_REDUCERS = ["max", "min", "mean", "median", "sum", "std"]
@@ -107,6 +107,12 @@ class ImageStackGroupBySerializationModel(BaseSerializationModel):
     image_stack_json: str
     groups_graft: dict
     reducer: ImageStackReducer = None
+
+    @classmethod
+    def from_json(cls, data: str) -> ImageStackGroupBySerializationModel:
+        base_obj = super().from_json(data)
+        base_obj.groups_graft = reset_graft(base_obj.groups_graft)
+        return base_obj
 
 
 class ImageStackGroupBy(ComputeMap):

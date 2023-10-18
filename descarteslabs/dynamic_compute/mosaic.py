@@ -39,6 +39,7 @@ from .operations import (
     is_op,
     op_args,
     op_type,
+    reset_graft,
     set_cache_id,
 )
 from .reductions import reduction
@@ -54,6 +55,12 @@ class MosaicSerializationModel(BaseSerializationModel):
     bands: Union[str, List[str]]
     start_datetime: Optional[str] = None
     end_datetime: Optional[str] = None
+
+    @classmethod
+    def from_json(cls, data: str) -> MosaicSerializationModel:
+        base_obj = super().from_json(data)
+        base_obj.graft = reset_graft(base_obj.graft)
+        return base_obj
 
 
 class Mosaic(
@@ -100,7 +107,6 @@ class Mosaic(
         end_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
             Optional final cutoff
         """
-
         set_cache_id(graft)
         super().__init__(graft)
         self.bands = bands

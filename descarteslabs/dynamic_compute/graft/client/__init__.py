@@ -10,6 +10,7 @@ from .client import (
     merge_value_grafts,
     parametrize,
     splice,
+    unset_all_cache_ids,
     value_graft,
 )
 
@@ -26,4 +27,5 @@ __all__ = [
     "parametrize",
     "splice",
     "consistent_guid",
+    "unset_all_cache_ids",
 ]

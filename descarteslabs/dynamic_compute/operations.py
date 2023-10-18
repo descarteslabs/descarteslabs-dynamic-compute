@@ -636,7 +636,7 @@ def _length(arr, *args, **kwargs):
     return arr.shape[0], {"return_type": "int"}
 
 
-def _normalize_graft(graft: Dict) -> Dict:
+def _normalize_graft(graft: Dict, counter: Optional[Callable[[], int]] = None) -> Dict:
     """
     This function should only be used internally, in the context of generating cache keys.
 
@@ -665,6 +665,8 @@ def _normalize_graft(graft: Dict) -> Dict:
     ----------
     graft: Dict
         Graft for which we want a representation with re-mapped keys
+    counter: Optional[Callable[[], int]]
+        Optional function to use to generate new keys
 
     Returns
     -------
@@ -676,7 +678,10 @@ def _normalize_graft(graft: Dict) -> Dict:
         filter(lambda key: key != "returns", graft.keys()), key=lambda value: int(value)
     )
 
-    key_mapping = {key: str(idx) for idx, key in enumerate(sorted_non_return_keys)}
+    if counter is None:
+        key_mapping = {key: str(idx) for idx, key in enumerate(sorted_non_return_keys)}
+    else:
+        key_mapping = {key: str(counter()) for key in sorted_non_return_keys}
 
     normalized_graft = {}
 
@@ -702,6 +707,26 @@ def _normalize_graft(graft: Dict) -> Dict:
         normalized_graft[key_mapping.get(key, key)] = new_value
 
     return normalized_graft
+
+
+def reset_graft(graft: Dict) -> Dict:
+    """
+    Given a graft from a possibly different key-space, make sure
+    update it to ensure that it doesn't collide with keys from
+    the current key-space
+
+    Parameters
+    ----------
+    graft: Dict
+        Graft we would like to map into the current key space
+
+    Returns
+    -------
+    remapped_graft: Dict
+        Graft remapped into the current key-space
+    """
+
+    return _normalize_graft(graft, counter=graft_client.guid)
 
 
 def set_cache_id(graft: Dict):
