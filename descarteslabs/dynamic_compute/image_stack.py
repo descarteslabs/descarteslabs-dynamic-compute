@@ -37,6 +37,7 @@ from .operations import (
     filter_data,
     format_bands,
     is_op,
+    masked_einsum,
     op_args,
     op_type,
     reset_graft,
@@ -688,7 +689,7 @@ def dot(
                 _apply_binary(
                     a,
                     b,
-                    lambda aa, bb: np.einsum("ibrc,ibrc->brc", aa, bb),
+                    lambda aa, bb: masked_einsum("ibrc,ibrc->brc", aa, bb),
                     dot_propagation_for_two_image_stacks,
                 )
             )
@@ -706,7 +707,7 @@ def dot(
                     _apply_binary(
                         a,
                         as_compute_map(b),
-                        lambda aa, bb: np.einsum("ibrc,ij->jbrc", aa, bb),
+                        lambda aa, bb: masked_einsum("ibrc,ij->jbrc", aa, bb),
                         lambda pa, pb, **kwargs: dot_property_propagation_for_image_stack_and_matrix(
                             pa, b.shape[1]
                         ),
@@ -719,7 +720,7 @@ def dot(
                     _apply_binary(
                         a,
                         as_compute_map(b),
-                        lambda aa, bb: np.einsum("ibrc,i->brc", aa, bb),
+                        lambda aa, bb: masked_einsum("ibrc,i->brc", aa, bb),
                         lambda pa, pb, **kwargs: {"pad": pa[0].get("pad", 0)},
                     )
                 )
@@ -741,7 +742,7 @@ def dot(
                 _apply_binary(
                     as_compute_map(a),
                     b,
-                    lambda aa, bb: np.einsum("ij,jbrc->ibrc", aa, bb),
+                    lambda aa, bb: masked_einsum("ij,jbrc->ibrc", aa, bb),
                     lambda pa, pb, **kwargs: dot_property_propagation_for_image_stack_and_matrix(
                         pb, a.shape[0]
                     ),
@@ -754,7 +755,7 @@ def dot(
                 _apply_binary(
                     as_compute_map(a),
                     b,
-                    lambda aa, bb: np.einsum("i,ibrc->brc", aa, bb),
+                    lambda aa, bb: masked_einsum("i,ibrc->brc", aa, bb),
                     lambda pa, pb, **kwargs: {"pad": pb[0].get("pad", 0)},
                 )
             )

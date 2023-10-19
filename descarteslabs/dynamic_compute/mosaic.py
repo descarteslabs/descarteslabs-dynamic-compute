@@ -37,6 +37,7 @@ from .operations import (
     create_mosaic,
     format_bands,
     is_op,
+    masked_einsum,
     op_args,
     op_type,
     reset_graft,
@@ -572,7 +573,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                 _apply_binary(
                     a,
                     b,
-                    lambda aa, bb: np.einsum("irc,irc->rc", aa, bb)[None, ...],
+                    lambda aa, bb: masked_einsum("irc,irc->rc", aa, bb)[None, ...],
                     property_propagation_for_dot,
                 )
             )
@@ -590,7 +591,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     _apply_binary(
                         a,
                         as_compute_map(b),
-                        lambda aa, bb: np.einsum("irc,ij->jrc", aa, bb),
+                        lambda aa, bb: masked_einsum("irc,ij->jrc", aa, bb),
                         property_propagation_for_dot,
                     )
                 )
@@ -601,7 +602,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                     _apply_binary(
                         a,
                         as_compute_map(b),
-                        lambda aa, bb: np.einsum("irc,i->rc", aa, bb)[None, ...],
+                        lambda aa, bb: masked_einsum("irc,i->rc", aa, bb)[None, ...],
                     )
                 )
             else:
@@ -621,7 +622,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                 _apply_binary(
                     as_compute_map(a),
                     b,
-                    lambda aa, bb: np.einsum("ij,jrc->irc", aa, bb),
+                    lambda aa, bb: masked_einsum("ij,jrc->irc", aa, bb),
                     property_propagation_for_dot,
                 )
             )
@@ -631,7 +632,7 @@ def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
                 _apply_binary(
                     as_compute_map(a),
                     b,
-                    lambda aa, bb: np.einsum("i,irc->rc", aa, bb)[None, ...],
+                    lambda aa, bb: masked_einsum("i,irc->rc", aa, bb)[None, ...],
                 )
             )
         else:

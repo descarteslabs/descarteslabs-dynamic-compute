@@ -1215,3 +1215,78 @@ def op_args(graft_op_node: list) -> list:
         raise ValueError("Cannot get op args of graft node that is not an operation")
 
     return graft_op_node[1:]
+
+
+def _nan_mask(op: Union[np.ndarray, np.ma.MaskedArray]) -> np.ndarray:
+    """
+    Create an array where masked values are nans and non-masked values are zero
+
+    Parameters
+    ----------
+    op: Union[np.ndarray, np.ma.MaskedArray]
+        Operand for which we want the nan-mask
+
+    Returns
+    -------
+    nan_mask: np.ndarray
+        Nan-mask for operand
+    """
+    mask = np.zeros(op.shape)
+
+    if not isinstance(op, np.ma.MaskedArray):
+        return mask
+
+    mask[op.mask] = np.nan
+
+    return mask
+
+
+def masked_einsum(
+    signature: str,
+    op1: Union[np.ndarray, np.ma.MaskedArray],
+    op2: Union[np.ndarray, np.ma.MaskedArray],
+) -> Union[np.ndarray, np.ma.MaskedArray]:
+    """
+    Compute an einsum that respects masks.
+
+    Parameters
+    ----------
+    signature: str
+        `np.einsum` signature
+    op1: Union[np.ndarray, np.ma.MaskedArray]
+        First operand
+    op2: Union[np.ndarray, np.ma.MaskedArray]
+        Second operand
+
+    Returns
+    -------
+    product: Union[np.ndarray, np.ma.MaskedArray]
+        Masked result for einsum
+    """
+    unmasked_result = np.einsum(signature, op1, op2)
+
+    if not isinstance(op1, np.ma.MaskedArray) and not isinstance(
+        op2, np.ma.MaskedArray
+    ):
+        return unmasked_result
+
+    # Implementation idea: einsum is akin to matrix multiplicataion in that
+    # it uses multiplication and addition to get a result. Masks are booleans
+    # and for booleans multiplication is "and" and addition is "or", applying
+    # einsum directly to the masks may not give the desired result.
+    #
+    # For each operatnd, we create a new mask where False (not masked) is 0 and
+    # True (masked) is nan, and then take advantage that nans propagate as desired,
+    # e.g.
+    #
+    #     nan + anything == anything + nan == nan
+    #     nan * anything == anything * nan == nan
+    #
+    # We apply einsum on the two nan-masks, then mask the result for any nan result
+
+    nan_mask1 = _nan_mask(op1)
+    nan_mask2 = _nan_mask(op2)
+
+    mask = np.isnan(np.einsum(signature, nan_mask1, nan_mask2))
+
+    return np.ma.masked_array(unmasked_result, mask)
