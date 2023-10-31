@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased Changes
 
+## v0.9.5 - 10/31/23
+
+### Fixed
+
+- Fixed a bug where `dc.dot` did not respect masking.
+
 ## v0.9.4 - 10/10/23
 
 ### Fixed
