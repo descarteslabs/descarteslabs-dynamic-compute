@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased Changes
 
+## v0.9.6 - 11/08/23
+
+### Changed
+
+- Backend optimizations to help scalability
+
 ## v0.9.5 - 10/31/23
 
 ### Fixed
