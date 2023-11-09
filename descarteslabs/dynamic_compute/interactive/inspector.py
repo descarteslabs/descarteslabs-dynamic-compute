@@ -96,6 +96,17 @@ class PixelInspector(ipywidgets.GridBox):
         super().__init__([], layout=layout)
         self.layout.grid_template_columns = "min-content " * (1 + self.n_bands)
 
+        # Set up the lat/lon reader
+        _value_layout = {"width": "initial", "margin": "0 2px", "height": "1.6em"}
+        self.lat_label = ipywidgets.Label(value="Latitude:", layout=_value_layout)
+        self.lat_label.layout.grid_column = "1"
+        self.lat_val = ipywidgets.Label(value="0", layout=_value_layout)
+        self.lat_val.layout.grid_column = "2"
+        self.lon_label = ipywidgets.Label(value="Longitude:", layout=_value_layout)
+        self.lon_label.layout.grid_column = "3"
+        self.lon_val = ipywidgets.Label(value="0", layout=_value_layout)
+        self.lon_val.layout.grid_column = "4"
+
         # awkwardly handle MapApp without circularly importing it for an isinstance check
         try:
             sub_map = map.map
@@ -157,6 +168,9 @@ class PixelInspector(ipywidgets.GridBox):
                 inspector_rows.append(inspector_row)
 
         new_children = []
+        new_children.extend(
+            [self.lat_label, self.lat_val, self.lon_label, self.lon_val]
+        )
         for inspector_row in inspector_rows:
             new_children.append(inspector_row.name_label)
             new_children.extend(inspector_row.values_labels)
@@ -174,6 +188,8 @@ class PixelInspector(ipywidgets.GridBox):
 
             self.marker.opacity = 1
             self.marker.location = (lat, lon)
+            self.lat_val.value = f"{self.marker.location[0]:.3f}"
+            self.lon_val.value = f"{self.marker.location[1]:.3f}"
 
             # in case it accidentally got deleted with `clear_layers`
             if self.marker not in self._map.layers:
@@ -223,11 +239,7 @@ class InspectorRowGenerator(traitlets.HasTraits):
         )
 
         marker.observe(self.recalculate, "inspect_latlon", type="change")
-        layer.observe(
-            self.recalculate,
-            ["image_value", "visible"],
-            type="change",
-        )
+        layer.observe(self.recalculate, ["image_value", "visible"], type="change")
 
         self._viz_links = [
             traitlets.dlink(
@@ -248,9 +260,7 @@ class InspectorRowGenerator(traitlets.HasTraits):
         # we must explicitly unobserve for exactly the names and types we observed for.
         self.marker.unobserve(self.recalculate, "inspect_latlon", type="change")
         self.layer.unobserve(
-            self.recalculate,
-            ["image_value", "visible"],
-            type="change",
+            self.recalculate, ["image_value", "visible"], type="change"
         )
         self._name_link.unlink()
         for viz_link in self._viz_links:
@@ -270,12 +280,7 @@ class InspectorRowGenerator(traitlets.HasTraits):
         except TypeError:
             cache_key = None
         else:
-            cache_key = (
-                latlon,
-                self.layer.layer_id,
-                self.layer.reduction,
-                params_key,
-            )
+            cache_key = (latlon, self.layer.layer_id, self.layer.reduction, params_key)
 
         if cache_key:
             try:
