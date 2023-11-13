@@ -98,12 +98,12 @@ class PixelInspector(ipywidgets.GridBox):
 
         # Set up the lat/lon reader
         _value_layout = {"width": "initial", "margin": "0 2px", "height": "1.6em"}
-        self.lat_label = ipywidgets.Label(value="Latitude:", layout=_value_layout)
+        self.lat_label = ipywidgets.Label(value="Latitude,", layout=_value_layout)
         self.lat_label.layout.grid_column = "1"
-        self.lat_val = ipywidgets.Label(value="0", layout=_value_layout)
-        self.lat_val.layout.grid_column = "2"
         self.lon_label = ipywidgets.Label(value="Longitude:", layout=_value_layout)
-        self.lon_label.layout.grid_column = "3"
+        self.lon_label.layout.grid_column = "2"
+        self.lat_val = ipywidgets.Label(value="0,", layout=_value_layout)
+        self.lat_val.layout.grid_column = "3"
         self.lon_val = ipywidgets.Label(value="0", layout=_value_layout)
         self.lon_val.layout.grid_column = "4"
 
@@ -169,7 +169,7 @@ class PixelInspector(ipywidgets.GridBox):
 
         new_children = []
         new_children.extend(
-            [self.lat_label, self.lat_val, self.lon_label, self.lon_val]
+            [self.lat_label, self.lon_label, self.lat_val, self.lon_val]
         )
         for inspector_row in inspector_rows:
             new_children.append(inspector_row.name_label)
@@ -188,8 +188,8 @@ class PixelInspector(ipywidgets.GridBox):
 
             self.marker.opacity = 1
             self.marker.location = (lat, lon)
-            self.lat_val.value = f"{self.marker.location[0]:.3f}"
-            self.lon_val.value = f"{self.marker.location[1]:.3f}"
+            self.lat_val.value = f"{self.marker.location[0]:.5f},"
+            self.lon_val.value = f"{self.marker.location[1]:.5f}"
 
             # in case it accidentally got deleted with `clear_layers`
             if self.marker not in self._map.layers:
