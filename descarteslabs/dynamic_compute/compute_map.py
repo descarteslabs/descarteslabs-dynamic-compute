@@ -2,6 +2,7 @@
 # https://peps.python.org/pep-0673/
 from __future__ import annotations
 
+import functools
 import json
 import sys
 from abc import ABC, abstractclassmethod, abstractmethod
@@ -394,6 +395,7 @@ def index_align_args(f: Callable[[Any, Any], Any]) -> Callable[[Any, Any], Any]:
         are aligned and applies a binary operation.
     """
 
+    @functools.wraps(f)
     def aligned_f(a, b):
         if issubclass(type(a), Number) or issubclass(type(a), Number):
             # One argument is a number, so the binary operation can

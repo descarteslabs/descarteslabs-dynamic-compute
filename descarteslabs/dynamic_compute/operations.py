@@ -550,10 +550,13 @@ def adaptive_mask(mask, data):
     if (
         mask.ndim == 2
     ):  # this is a Mosiac with one band, that for whatever reason didn't come back as (1,row,cols)
-        leading_shape = data.shape[: -len(mask.shape)]
-        full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
 
-        return np.ma.masked_where(full_mask, data)
+        masked_data = np.ma.masked_array(data, False)
+        index = tuple(
+            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
+        )
+        masked_data.mask = mask[index]
+        return masked_data
 
     if (
         mask.ndim == 3
@@ -579,10 +582,13 @@ def adaptive_mask(mask, data):
 
         if mask.shape[0] == 1:
             mask = np.squeeze(mask, axis=0)
-        leading_shape = data.shape[: -len(mask.shape)]
-        full_mask = np.outer(np.ones(leading_shape), mask).reshape(data.shape)
 
-        return np.ma.masked_where(full_mask, data)
+        masked_data = np.ma.masked_array(data, False)
+        index = tuple(
+            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
+        )
+        masked_data.mask = mask[index]
+        return masked_data
 
     if mask.ndim == 4:  # the mask is an ImageStack
         if (
@@ -608,10 +614,25 @@ def adaptive_mask(mask, data):
                     )
                 )
 
+    masked_data = np.ma.masked_array(data, False)
     if mask.shape[1] == 1:
-        mask = np.hstack(data.shape[1] * [mask])
 
-    return np.ma.masked_where(mask, data)
+        # The computational intent of the following three lines of code is
+        #
+        # for i in range(masked_data.shape[1]):
+        #     masked_data.mask[:, i, :, :] = mask[:, 0, :, :]
+        #
+        # The conventional wisdom is that iteration is bad. However,
+        # I can only seem to get the desired broadcast behavior by swapping
+        # the fist two axes, doing the assignment, and then swapping back.
+
+        temp = np.moveaxis(masked_data, (0, 1, 2, 3), (1, 0, 2, 3))
+        temp.mask = np.moveaxis(mask, (0, 1, 2, 3), (1, 0, 2, 3))
+        masked_data = np.moveaxis(temp, (0, 1, 2, 3), (1, 0, 2, 3))
+    else:
+        masked_data.mask = mask
+
+    return masked_data
 
 
 @operation
