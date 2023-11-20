@@ -493,44 +493,7 @@ def _concat_bands(arr0, arr1, args_props, **kwargs):
     return result, properties0
 
 
-def adaptive_mask(mask, data):
-    """
-    This function creates a mask for data assuming that the mask may
-    need to be extended to cover more dimensions.  If `data` has more
-    leading dimensions than `mask`, `mask` is extended along those leading
-    dimensions.
-
-    If `data` has more dimensions in the second position than `mask`, `mask`
-    is extended along that dimensions.
-
-    A few sample use cases follow: Assume we have raster data whose shape is
-    (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
-    whose shape is just (pixel-rows, pixel-cols). This function will extend the
-    mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
-
-    Similarly, if the data is (scenes, bands, pixel-rows, pixel-cols), we extend
-    the mask to (scenes, bands, pixel-rows, pixel-cols) to match. If instead, the
-    mask is (scenes, bands=1, pixel-rows, pixel-cols) while the data is
-    (scenes, bands=3, pixel-rows, pixel-cols), we will extend to match both
-    cases.
-
-    Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
-    this will fail -- we  don't check that present dimensions agree, we only add
-    missing dimensions.
-
-    Parmaters
-    ---------
-    mask: numpy.ndarray
-        Mask to apply
-    data: numpy.ndarray
-        Data to mask
-
-    Returns
-    -------
-    md : numpy.ma.core.MaskedArray
-        Masked array.
-    """
-
+def _adaptive_mask(mask, data):
     if mask.ndim not in [2, 3, 4]:
         raise Exception(
             (
@@ -636,6 +599,54 @@ def adaptive_mask(mask, data):
         masked_data.mask |= mask
 
     return masked_data
+
+
+def adaptive_mask(mask, data):
+    """
+    This function creates a mask for data assuming that the mask may
+    need to be extended to cover more dimensions.  If `data` has more
+    leading dimensions than `mask`, `mask` is extended along those leading
+    dimensions.
+
+    If `data` has more dimensions in the second position than `mask`, `mask`
+    is extended along that dimensions.
+
+    A few sample use cases follow: Assume we have raster data whose shape is
+    (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
+    whose shape is just (pixel-rows, pixel-cols). This function will extend the
+    mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
+
+    Similarly, if the data is (scenes, bands, pixel-rows, pixel-cols), we extend
+    the mask to (scenes, bands, pixel-rows, pixel-cols) to match. If instead, the
+    mask is (scenes, bands=1, pixel-rows, pixel-cols) while the data is
+    (scenes, bands=3, pixel-rows, pixel-cols), we will extend to match both
+    cases.
+
+    Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
+    this will fail -- we  don't check that present dimensions agree, we only add
+    missing dimensions.
+
+    Parmaters
+    ---------
+    mask: numpy.ndarray
+        Mask to apply
+    data: numpy.ndarray
+        Data to mask
+
+    Returns
+    -------
+    md : numpy.ma.core.MaskedArray
+        Masked array.
+    """
+    try:
+        return _adaptive_mask(mask, data)
+    except Exception as e:
+        if str(e).find("'bitwise_or' not supported for the input types") >= 0:
+            raise Exception(
+                f"Encountered an error applying a mask of type {mask.dtype} to an array of type {data.dtype}"
+            )
+        else:
+            raise e
 
 
 @operation
