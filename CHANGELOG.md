@@ -2,7 +2,11 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased Changes
+## v0.9.8 - 11/15/23
+
+### Fixed
+
+- Masking logic ignored prior mask on input.
 
 ## v0.9.7 - 11/15/23
 
