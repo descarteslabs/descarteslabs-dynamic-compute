@@ -555,7 +555,7 @@ def adaptive_mask(mask, data):
         index = tuple(
             [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
         )
-        masked_data.mask = mask[index]
+        masked_data.mask |= mask[index]
         return masked_data
 
     if (
@@ -587,7 +587,7 @@ def adaptive_mask(mask, data):
         index = tuple(
             [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
         )
-        masked_data.mask = mask[index]
+        masked_data.mask |= mask[index]
         return masked_data
 
     if mask.ndim == 4:  # the mask is an ImageStack
@@ -614,7 +614,10 @@ def adaptive_mask(mask, data):
                     )
                 )
 
-    masked_data = np.ma.masked_array(data, False)
+    if isinstance(data, np.ma.MaskedArray):
+        masked_data = data
+    else:
+        masked_data = np.ma.masked_array(data, False)
     if mask.shape[1] == 1:
 
         # The computational intent of the following three lines of code is
@@ -627,10 +630,10 @@ def adaptive_mask(mask, data):
         # the fist two axes, doing the assignment, and then swapping back.
 
         temp = np.moveaxis(masked_data, (0, 1, 2, 3), (1, 0, 2, 3))
-        temp.mask = np.moveaxis(mask, (0, 1, 2, 3), (1, 0, 2, 3))
+        temp.mask |= np.moveaxis(mask, (0, 1, 2, 3), (1, 0, 2, 3))
         masked_data = np.moveaxis(temp, (0, 1, 2, 3), (1, 0, 2, 3))
     else:
-        masked_data.mask = mask
+        masked_data.mask |= mask
 
     return masked_data
 
