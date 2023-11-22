@@ -2,7 +2,13 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## v0.9.8 - 11/15/23
+## Unreleased
+
+### Added
+
+- Expand the client to allow python versions >=3.8, <3.12
+
+## v0.9.8 - 11/20/23
 
 ### Fixed
 

@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8, <3.11"
+python = ">=3.8, <3.12"
 ipyleaflet = ">=0.15.0"
 tifffile = ">=2021.4.8"
 shapely = "<2"
@@ -21,7 +21,6 @@ numpy = "<=1.24.2"
 descarteslabs = ">=2.0.3,<2.2.0"
 cloudpickle = "1.6.0"
 certifi = ">=2023.7.22"
-
 
 [build-system]
 requires = ["poetry-core"]
