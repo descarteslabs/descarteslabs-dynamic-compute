@@ -15,6 +15,7 @@ from .compute_map import (
     ComputeMap,
     ExpMixin,
     FloorDivMixin,
+    LogicalMixin,
     MulMixin,
     NumpyReductionMixin,
     SignedMixin,
@@ -168,6 +169,7 @@ class ImageStack(
     MulMixin,
     TrueDivMixin,
     FloorDivMixin,
+    LogicalMixin,
     SignedMixin,
     ExpMixin,
     CompareMixin,
@@ -469,9 +471,7 @@ class ImageStack(
         """
 
         if axis == "bands":
-            kwargs = {
-                "product_id": self.product_id,
-            }
+            kwargs = {"product_id": self.product_id}
         else:
             kwargs = {}
 

@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Expand the client to allow python versions >=3.8, <3.12
+- Added the ~ (inversion) operator for Mosaics and ImageStacks
 
 ## v0.9.8 - 11/20/23
 

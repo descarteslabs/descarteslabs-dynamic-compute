@@ -32,9 +32,7 @@ class DotDict(dict):
     __delattr__ = dict.__delitem__
 
 
-type_map = {
-    "int": int,
-}
+type_map = {"int": int}
 
 
 class Capturing(list):
@@ -607,6 +605,12 @@ class LogicalMixin:
             self, other, index_align_args(lambda a, b: a | b), op_name="or"
         )
 
+    def __invert__(self) -> ComputeMap:
+
+        extra_init_args = _extra_init_args(self)
+
+        return type(self)(_apply_unary(self, lambda a: ~a), **extra_init_args)
+
 
 class NumpyReductionMixin:
     def max(self, axis):
@@ -619,10 +623,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.max,
-            axis,
-        )
+        return self.reduce(np.ma.max, axis)
 
     def mean(self, axis):
         """
@@ -634,10 +635,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.mean,
-            axis,
-        )
+        return self.reduce(np.ma.mean, axis)
 
     def median(self, axis):
         """
@@ -649,10 +647,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.median,
-            axis,
-        )
+        return self.reduce(np.ma.median, axis)
 
     def min(self, axis):
         """
@@ -664,10 +659,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.min,
-            axis,
-        )
+        return self.reduce(np.ma.min, axis)
 
     def sum(self, axis):
         """
@@ -679,10 +671,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.sum,
-            axis,
-        )
+        return self.reduce(np.ma.sum, axis)
 
     def std(self, axis):
         """
@@ -694,10 +683,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(
-            np.ma.std,
-            axis,
-        )
+        return self.reduce(np.ma.std, axis)
 
     def argmax(self, axis):
         """
@@ -713,10 +699,7 @@ class NumpyReductionMixin:
         """
         if axis not in ["bands", "images"]:
             raise NotImplementedError(f"argmax reduction over {axis} not implemented")
-        return self.reduce(
-            np.ma.argmax,
-            axis,
-        )
+        return self.reduce(np.ma.argmax, axis)
 
 
 #

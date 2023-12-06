@@ -17,6 +17,7 @@ from .compute_map import (
     ComputeMap,
     ExpMixin,
     FloorDivMixin,
+    LogicalMixin,
     MulMixin,
     NumpyReductionMixin,
     SignedMixin,
@@ -74,6 +75,7 @@ class Mosaic(
     ExpMixin,
     CompareMixin,
     NumpyReductionMixin,
+    LogicalMixin,
     ComputeMap,  # Base class
 ):
     """
@@ -230,13 +232,7 @@ class Mosaic(
         end_datetime = normalize_datetime_or_none(end_datetime)
         bands = " ".join(format_bands(bands))
 
-        graft = create_mosaic(
-            product_id,
-            bands,
-            start_datetime,
-            end_datetime,
-            **kwargs,
-        )
+        graft = create_mosaic(product_id, bands, start_datetime, end_datetime, **kwargs)
 
         return cls(graft, bands, product_id, start_datetime, end_datetime)
 
@@ -263,9 +259,7 @@ class Mosaic(
         return_value = self[return_key]
 
         if not (is_op(return_value) and op_type(return_value) == "mosaic"):
-            return Mosaic(
-                _pick_bands(self, json.dumps(format_bands(bands))),
-            )
+            return Mosaic(_pick_bands(self, json.dumps(format_bands(bands))))
 
         args = op_args(return_value)
 
@@ -327,7 +321,7 @@ class Mosaic(
             Masked mosaic.
         """
         return Mosaic(
-            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
+            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb)
         )
 
     def concat_bands(self, other: Union[Mosaic, str, List[str]]) -> Mosaic:
@@ -350,9 +344,7 @@ class Mosaic(
         if not isinstance(other, Mosaic):
             other = self.pick_bands(other)
 
-        return Mosaic(
-            _concat_bands(self, other),
-        )
+        return Mosaic(_concat_bands(self, other))
 
     def clip(self, lo: Number, hi: Number) -> Mosaic:
         """
@@ -373,9 +365,7 @@ class Mosaic(
         if not lo < hi:
             raise Exception(f"Lower bound ({lo}) is not less than upper bound ({hi})")
 
-        return Mosaic(
-            _apply_unary(self, lambda a: np.clip(a, lo, hi)),
-        )
+        return Mosaic(_apply_unary(self, lambda a: np.clip(a, lo, hi)))
 
     def reduce(self, reducer: Callable, axis: str = "bands"):
         """
