@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.9.9 - 12/07/2023
+
 ### Added
 
 - Expand the client to allow python versions >=3.8, <3.12
