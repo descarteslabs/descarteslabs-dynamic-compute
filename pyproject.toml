@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "descarteslabs-dynamic-compute"
-version = "0.9.9"
+version = "0.9.10"
 description = ""
 license = "Apache-2.0"
 authors = ["Descartes Labs"]

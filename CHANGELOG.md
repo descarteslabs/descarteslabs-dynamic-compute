@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.9.10 - 01/16/2024
+
+- Backend changes to increase logging and performance
+
 ## v0.9.9 - 12/07/2023
 
 ### Added
