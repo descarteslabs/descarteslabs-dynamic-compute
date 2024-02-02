@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v0.9.11 - 02/02/2024
+
+### Changed
+
+- Relaxed the requirement for `descarteslabs` in the client to <3.1.0
+
 ## v0.9.10 - 01/16/2024
 
 - Backend changes to increase logging and performance
