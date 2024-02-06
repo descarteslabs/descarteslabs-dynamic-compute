@@ -4,11 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
-## v0.9.11 - 02/02/2024
+## v0.9.11 - 02/05/2024
 
 ### Changed
 
 - Relaxed the requirement for `descarteslabs` in the client to <3.1.0
+- Bumped the requirement for `shapely` in the client to >2
+- Return geometries in `ImageStack` as a WKT string instead of a `Polygon` to be compatible with various versions of `shapely`
 
 ## v0.9.10 - 01/16/2024
 
