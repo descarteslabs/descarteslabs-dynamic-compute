@@ -4,6 +4,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.0.0 - 03/12/2024
+
+### Changed
+
+- Decreased the use of pickled code and instead utilizing keyword args for most math operations
+
 ## v0.9.11 - 02/05/2024
 
 ### Changed
