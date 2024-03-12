@@ -6,7 +6,7 @@ import json
 import logging
 from copy import deepcopy
 from numbers import Number
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import ipyleaflet
 import numpy as np
@@ -30,7 +30,7 @@ from .dl_utils import get_product_or_fail
 from .interactive.tile_url import validate_scales
 from .operations import (
     _apply_binary,
-    _apply_unary,
+    _clip_data,
     _concat_bands,
     _pick_bands,
     _rename_bands,
@@ -365,9 +365,9 @@ class Mosaic(
         if not lo < hi:
             raise Exception(f"Lower bound ({lo}) is not less than upper bound ({hi})")
 
-        return Mosaic(_apply_unary(self, lambda a: np.clip(a, lo, hi)))
+        return Mosaic(_clip_data(self, lo, hi))
 
-    def reduce(self, reducer: Callable, axis: str = "bands"):
+    def reduce(self, reducer: str, axis: str = "bands"):
         """
         Call a reduction function on this Mosaic
 

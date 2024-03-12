@@ -69,18 +69,6 @@ def format_bands(bands: Union[str, List[str]]) -> List[str]:
     return bands
 
 
-def _apply_unary(arg, value_func, prop_func=lambda x: x):
-    @operation
-    def encoded_func(a, args_props, *args, **kwargs):
-        # Often property processing will detect and report and error better
-        # than value processing. For this reason we process properties first.
-        new_props = prop_func(args_props[0])
-        new_value = value_func(a)
-        return new_value, new_props
-
-    return encoded_func(arg)
-
-
 def _get_pid_bands_pad(
     properties: Union[List[dict], dict]
 ) -> Tuple[Optional[str], Optional[List], Optional[int]]:
@@ -128,7 +116,7 @@ def _default_property_propagation(
 
     Dynamic Compute tracks data and metadata through steps of an
     evaluation.  Binary operations take two pieces of data and two
-    pieces of metadata (often called properties) to genrate a new
+    pieces of metadata (often called properties) to generate a new
     piece of data and a new piece of metadata. Dynamic Compute creates
     binary operations with `_apply_binary`.
 
@@ -911,6 +899,114 @@ def create_mosaic(
         end_datetime=end_datetime,
         pad=pad,
     )
+
+
+def get_padding(graft):
+    for i in list(graft.values()):
+        if isinstance(i, list):
+            if i[0] in ["select_scenes", "mosaic"]:
+                pad_key = i[-1]["pad"]
+
+    return graft[pad_key]
+
+
+def _math_op(main_obj, operation, other_obj=None, **kwargs):
+    """Apply a math operation between a graft and optionally another graft
+
+    Params
+    main_obj : graft
+        The main graft that the operation is applying to
+    operation : str
+        The name of the operation, will be used by the backend to
+        determine what operation to return
+    other_obj : Union[graft, None]
+        Optional other graft, defaults to None. Will be None for cases
+        like abs(a), will be a valid graft for cases like a + b.
+
+    Returns
+    graft encoding the operation
+    """
+
+    from .image_stack import ImageStack
+    from .mosaic import Mosaic
+
+    if type(other_obj) in [ImageStack, Mosaic]:
+        main_pad = get_padding(main_obj)
+        other_pad = get_padding(other_obj)
+
+        assert main_pad == other_pad, "Operands have different padding"
+
+    return graft_client.apply_graft(
+        "math",
+        operation,
+        main_obj,
+        other_obj,
+    )
+
+
+def _reduction_op(reducer, axis, obj_type_str, obj, **kwargs):
+    """Apply a reduction operation on graft. May be a built-in or custom operation
+
+    Params
+    reducer : str
+        The reduction to apply to the graft
+    axis : str
+        The axis to apply the reduction to
+    obj_type_str : str
+        A string name of the object type
+    obj : graft
+        The graft that the reduction is applying to
+
+    Returns
+    graft encoding the reduction
+    """
+
+    return graft_client.apply_graft(
+        "reduction",
+        obj,
+        reducer,
+        axis,
+        obj_type_str,
+    )
+
+
+def _func_op(obj, operation, **kwargs):
+    """Apply a functional operation on a graft
+
+    Params
+    obj : graft
+        The graft that the operation is applying to
+    operation : str
+        The name of the operation, will be used by the backend to
+        determine what operation to return
+
+    Returns
+    graft encoding the operation
+    """
+
+    return graft_client.apply_graft(
+        "functional",
+        obj,
+        operation,
+    )
+
+
+def _clip_data(obj, lo, hi, **kwargs):
+    """Apply a math operation between a graft and optionally another graft
+
+    Params
+    obj : graft
+        The graft that the clip is applying to
+    lo : Union[int, float]
+        The low value to clip data to
+    hi : Union[int, float]
+        The high value to clip data to
+
+    Returns
+    graft encoding the clipping
+    """
+
+    return graft_client.apply_graft("clip", obj, lo, hi)
 
 
 def select_scenes(

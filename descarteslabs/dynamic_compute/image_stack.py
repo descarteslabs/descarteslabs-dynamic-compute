@@ -4,6 +4,7 @@ import dataclasses
 import datetime
 import json
 from copy import deepcopy
+from numbers import Number
 from typing import Callable, Dict, Hashable, List, Optional, Tuple, Union
 
 import descarteslabs as dl
@@ -28,6 +29,7 @@ from .dl_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
+    _clip_data,
     _concat_bands,
     _index,
     _length,
@@ -450,9 +452,28 @@ class ImageStack(
             product_id=self.product_id,
         )
 
-    def reduce(
-        self, reducer: Callable[[np.ndarray], np.ndarray], axis: str = "images"
-    ) -> Union[Mosaic, ImageStack]:
+    def clip(self, lo: Number, hi: Number) -> ImageStack:
+        """
+        Generate a new ImageStack that is bounded by low and hi.
+
+        Parameters
+        ----------
+        lo: Number
+            Lower bound
+        hi: Number
+            Upper bound
+
+        Returns
+        -------
+        bounded: ImageStack
+            New ImageStack object that is bounded
+        """
+        if not lo < hi:
+            raise Exception(f"Lower bound ({lo}) is not less than upper bound ({hi})")
+
+        return ImageStack(_clip_data(self, lo, hi))
+
+    def reduce(self, reducer: str, axis: str = "images") -> Union[Mosaic, ImageStack]:
         """
         Perform a reduction over either images or bands. Note that this does not mutate self.
 

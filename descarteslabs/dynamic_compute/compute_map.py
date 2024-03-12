@@ -2,14 +2,13 @@
 # https://peps.python.org/pep-0673/
 from __future__ import annotations
 
-import functools
 import json
 import sys
 from abc import ABC, abstractclassmethod, abstractmethod
 from copy import copy, deepcopy
 from io import StringIO
 from numbers import Number
-from typing import Any, Callable, Dict, List, Optional, Type, Union
+from typing import Dict, List, Type, Union
 
 import descarteslabs as dl
 import numpy as np
@@ -17,7 +16,7 @@ import numpy as np
 from .graft.client import client as graft_client
 from .graft.interpreter.interpreter import interpret
 from .graft.syntax import syntax as graft_syntax
-from .operations import _apply_binary, _apply_unary, compute_aoi
+from .operations import _func_op, _math_op, compute_aoi
 
 
 class DotDict(dict):
@@ -91,6 +90,18 @@ def groupby_data(*args, **kwargs):
     return None
 
 
+def math_op(*args, **kwargs):
+    return None
+
+
+def reduction_op(*args, **kwargs):
+    return None
+
+
+def clip_data(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -154,6 +165,9 @@ class ComputeMap(dict, ABC):
                     ("groupby", groupby),
                     ("filter_data", filter_data),
                     ("groupby_data", groupby_data),
+                    ("math", math_op),
+                    ("reduction", reduction_op),
+                    ("clip", clip_data),
                 ],
                 debug=True,
             )()
@@ -327,115 +341,6 @@ def type_max(
     return t2
 
 
-def binary_op(
-    a: Union[Number, List, np.ndarray, ComputeMap],
-    b: Union[Number, List, np.ndarray, ComputeMap],
-    f: Callable[[Any, Any], Any],
-    op_name: Optional[str] = None,
-) -> ComputeMap:
-    """
-    Given two compute maps, create a new compute map by applying a binary operation to the two.
-
-    The types a and b are assessed for compatibility -- one must be a number, or one must be a
-    subclass of the other, or they must be the same class.
-
-    Parameters
-    ----------
-    a: Union[Number, List, np.ndarray, ComputeMap]
-        First operand
-    b: Union[Number, List, np.ndarray, ComputeMap]
-        Second operand
-    f: Callable[[Any, Any], Any]
-        Operation that combines the evalaution of a with the evaluation of b to produce a new value.
-    op_name: Optional[str]
-        Optional name for the operation
-
-    Returns
-    -------
-    r: ComputeMap
-        ComputeMap instance resulting from the operation f applied to the operands.
-    """
-    return_type = type_max(type(a), type(b))
-
-    a = as_compute_map(a)
-    b = as_compute_map(b)
-
-    a_init_args = a._extra_init_args()
-    b_init_args = b._extra_init_args()
-
-    init_args = {}
-    if a_init_args == {}:
-        init_args = b_init_args
-    elif b_init_args == {}:
-        init_args = a_init_args
-    elif a_init_args == b_init_args:
-        init_args = a_init_args
-
-    return_value = _apply_binary(a, b, f, op_name=op_name)
-
-    return return_type(return_value, **init_args)
-
-
-def index_align_args(f: Callable[[Any, Any], Any]) -> Callable[[Any, Any], Any]:
-    """
-    Attempt to make indices compatible for arguments to f. Note that this doesn't ensure success,
-    rather it is necessary for certain operations.
-
-    Parameters
-    ----------
-    f: Callable[[Any, Any], Any]
-        Function that takes two arguments and applies a binary operation.
-
-    Returns
-    -------
-    aligned_f: Callable[[Any, Any], Any]
-        Function that takes two arguments, tries to ensure that array indices
-        are aligned and applies a binary operation.
-    """
-
-    @functools.wraps(f)
-    def aligned_f(a, b):
-        if issubclass(type(a), Number) or issubclass(type(a), Number):
-            # One argument is a number, so the binary operation can
-            # be applied in a natural way.
-            return f(a, b)
-
-        if isinstance(a, np.ndarray) and isinstance(b, np.ndarray):
-            if a.shape == b.shape:
-                # The arrays have the same shape, again the binary operation
-                # can be applied in a natural way.
-                return f(a, b)
-
-            if len(a.shape) == 1 and a.shape[0] == b.shape[0]:
-                # a is a vector whose length matches the leading dimension of b.
-                # apply f to a after it has been reshaped to be compatible with b.
-                new_shape = tuple(
-                    [a.shape[0]] + [1 for _ in range(len(b.shape) - len(a.shape))]
-                )
-                return f(a.reshape(new_shape), b)
-
-            if len(b.shape) == 1 and b.shape[0] == a.shape[0]:
-                # Same as the previous case, but a and b are reversed.
-                new_shape = tuple(
-                    [b.shape[0]] + [1 for _ in range(len(a.shape) - len(b.shape))]
-                )
-                return f(a, b.reshape(new_shape))
-
-            if len(a.shape) == 3 and len(b.shape) == 4 and a.shape[0] == b.shape[1]:
-                # a is a Mosaic and b is an ImageStack, and they have the same number of bands.
-                return f(a[None, ...], b)
-
-            if len(a.shape) == 4 and len(b.shape) == 3 and a.shape[0] == b.shape[1]:
-                # Same as the previous case, but a and b are reversed.
-                return f(a, b[None, ...])
-
-        # The above if-statement handle definite numpy broadcast errors. There are obviously
-        # cases that don't fit into one of the above cases. We hand those off to f.
-        return f(a, b)
-
-    return aligned_f
-
-
 #
 # Mix-ins for a number of math operations
 #
@@ -450,166 +355,166 @@ def _extra_init_args(cm):
 
 class AddMixin:
     def __add__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a + b), op_name="sum"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "add", as_compute_map(other)))
 
     def __radd__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a + b), op_name="sum"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "radd", as_compute_map(other)))
 
 
 class SubMixin:
     def __sub__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a - b), op_name="sub"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "sub", other))
 
     def __rsub__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            other, self, index_align_args(lambda a, b: b - a), op_name="sub"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rsub", as_compute_map(other)))
 
 
 class MulMixin:
     def __mul__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a * b), op_name="mul"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "mul", as_compute_map(other)))
 
     def __rmul__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a * b), op_name="mul"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rmul", as_compute_map(other)))
 
 
 class TrueDivMixin:
     def __truediv__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a / b), op_name="div"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "truediv", as_compute_map(other)))
 
     def __rtruediv__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: b / a), op_name="div"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rtruediv", as_compute_map(other)))
 
 
 class FloorDivMixin:
     def __floordiv__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a // b), op_name="floordiv"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "floordiv", as_compute_map(other)))
 
     def __rfloordiv__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: b // a), op_name="floordiv"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rfloordiv", as_compute_map(other)))
 
 
 class SignedMixin:
     def __abs__(self) -> ComputeMap:
 
-        extra_init_args = _extra_init_args(self)
-
-        return type(self)(_apply_unary(self, lambda a: abs(a)), **extra_init_args)
+        # extra_init_args = _extra_init_args(self)
+        return_type = type(self)
+        return return_type(_math_op(self, "_abs"))
 
     def __neg__(self) -> ComputeMap:
 
-        extra_init_args = _extra_init_args(self)
-
-        return type(self)(_apply_unary(self, lambda a: -a), **extra_init_args)
+        # extra_init_args = _extra_init_args(self)
+        return_type = type(self)
+        return return_type(_math_op(self, "neg"))
 
 
 class ExpMixin:
     def __pow__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a**b), op_name="exp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "_pow", as_compute_map(other)))
 
     def __rpow__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: b**a), op_name="exp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rpow", as_compute_map(other)))
 
 
 class CompareMixin:
     def __eq__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a == b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "eq", as_compute_map(other)))
 
     def __ne__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a != b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "ne", as_compute_map(other)))
 
     def __gt__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a > b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "gt", as_compute_map(other)))
 
     def __ge__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a >= b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "ge", as_compute_map(other)))
 
     def __lt__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a < b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "lt", as_compute_map(other)))
 
     def __le__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a <= b), op_name="cmp"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "le", as_compute_map(other)))
 
 
 class LogicalMixin:
     def __and__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a & b), op_name="and"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "_and", as_compute_map(other)))
 
     def __rand__(
         self, other: Union[Number, List, np.ndarray, ComputeMap]
     ) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a & b), op_name="and"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "rand", as_compute_map(other)))
 
     def __or__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a | b), op_name="or"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "_or", as_compute_map(other)))
 
     def __ror__(self, other: Union[Number, List, np.ndarray, ComputeMap]) -> ComputeMap:
-        return binary_op(
-            self, other, index_align_args(lambda a, b: a | b), op_name="or"
-        )
+
+        return_type = type_max(type(self), type(other))
+        return return_type(_math_op(self, "ror", as_compute_map(other)))
 
     def __invert__(self) -> ComputeMap:
 
-        extra_init_args = _extra_init_args(self)
+        return_type = type(self)
 
-        return type(self)(_apply_unary(self, lambda a: ~a), **extra_init_args)
+        return return_type(_math_op(self, "invert"))
 
 
 class NumpyReductionMixin:
@@ -623,7 +528,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.max, axis)
+        return self.reduce("max", axis)
 
     def mean(self, axis):
         """
@@ -635,7 +540,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.mean, axis)
+        return self.reduce("mean", axis)
 
     def median(self, axis):
         """
@@ -647,7 +552,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.median, axis)
+        return self.reduce("median", axis)
 
     def min(self, axis):
         """
@@ -659,7 +564,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.min, axis)
+        return self.reduce("min", axis)
 
     def sum(self, axis):
         """
@@ -671,7 +576,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.sum, axis)
+        return self.reduce("sum", axis)
 
     def std(self, axis):
         """
@@ -683,7 +588,7 @@ class NumpyReductionMixin:
         Returns:
             ComputeMap
         """
-        return self.reduce(np.ma.std, axis)
+        return self.reduce("std", axis)
 
     def argmax(self, axis):
         """
@@ -699,7 +604,7 @@ class NumpyReductionMixin:
         """
         if axis not in ["bands", "images"]:
             raise NotImplementedError(f"argmax reduction over {axis} not implemented")
-        return self.reduce(np.ma.argmax, axis)
+        return self.reduce("argmax", axis)
 
 
 #
@@ -738,9 +643,7 @@ def _functional_op(f):
         if issubclass(type(arg), Number):
             return f(arg)
 
-        cm_arg = as_compute_map(arg)
-
-        return type(arg)(_apply_unary(cm_arg, f), **cm_arg._extra_init_args())
+        return type(arg)(_func_op(arg, f))
 
     return op
 
@@ -749,18 +652,18 @@ def _functional_op(f):
 # functional operations
 #
 
-sqrt = _functional_op(np.sqrt)
+sqrt = _functional_op("sqrt")
 
-cos = _functional_op(np.cos)
-sin = _functional_op(np.sin)
-tan = _functional_op(np.tan)
+cos = _functional_op("cos")
+sin = _functional_op("sin")
+tan = _functional_op("tan")
 
-arccos = _functional_op(np.arccos)
-arcsin = _functional_op(np.arcsin)
-arctan = _functional_op(np.arctan)
+arccos = _functional_op("arccos")
+arcsin = _functional_op("arcsin")
+arctan = _functional_op("arctan")
 
-log = _functional_op(np.log)
-log10 = _functional_op(np.log10)
+log = _functional_op("log")
+log10 = _functional_op("log10")
 
 # For compatibility
 pi = np.pi

@@ -12,6 +12,7 @@ from tqdm import tqdm
 from .compute_map import ComputeMap
 from .image_stack import ImageStack
 from .operations import compute_aoi, encode_function, groupby, reset_graft, set_cache_id
+from .reductions import reduction
 from .serialization import BaseSerializationModel
 
 BUILT_IN_REDUCERS = ["max", "min", "mean", "median", "sum", "std"]
@@ -41,9 +42,11 @@ class ImageStackGroups:
         -------
             Generator[Any, ComputeMap]: generator which yields a tuple: (group key, ComputeMap)
         """
+
         if not self.computed_value or self.computed_AOI != aoi:
             self.computed_value, _ = compute_aoi(self.groups_graft, aoi)
             self.computed_AOI = aoi
+
         for group_name, id_list in self.computed_value:
             compute_map = self.image_stack.filter(lambda i: i.id in id_list)
             if (
@@ -54,8 +57,15 @@ class ImageStackGroups:
                 compute_map = getattr(compute_map, self.reducer.func)(
                     axis=self.reducer.axis
                 )
-            elif self.reducer and isinstance(self.reducer.func, Callable):
-                compute_map = compute_map.reduce(self.reducer.func, self.reducer.axis)
+            elif (
+                self.reducer
+                and isinstance(self.reducer.func, str)
+                and self.reducer.func not in BUILT_IN_REDUCERS
+            ):
+
+                compute_map = reduction(
+                    self.image_stack, self.reducer.func, axis=self.reducer.axis
+                )
             yield group_name, compute_map
 
     def compute_all(self, aoi: AOI) -> dict:
@@ -243,14 +253,21 @@ class ImageStackGroupBy(ComputeMap):
         -------
             ImageStackGroups object
         """
+
         if isinstance(function, str) and function not in BUILT_IN_REDUCERS:
             raise TypeError(
                 f"Reducer {function} is not a member of {BUILT_IN_REDUCERS}"
             )
+
+        elif isinstance(function, Callable):
+            function = encode_function(function)
+
         new_imagestackgroupby = ImageStackGroupBy(self.image_stack, self.groups_graft)
         groups = deepcopy(self.groups)
         groups.reducer = ImageStackReducer(function, axis)
+
         new_imagestackgroupby.groups = groups
+
         return new_imagestackgroupby
 
     def serialize(self):
