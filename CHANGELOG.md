@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- base64 encode numpy arrays using the numpy save functionality instead of pickling them
+
 ## v1.0.0 - 03/12/2024
 
 ### Changed

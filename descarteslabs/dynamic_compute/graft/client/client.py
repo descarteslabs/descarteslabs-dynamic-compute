@@ -80,7 +80,7 @@ import contextlib
 import copy
 import itertools
 import json
-import pickle
+from io import BytesIO
 from typing import Dict, Hashable, List
 
 import numpy as np
@@ -143,10 +143,16 @@ def value_graft(value, key=None):
         return {key: [value], "returns": key}
     elif isinstance(value, np.ndarray):
         key1 = guid()
+
+        buf = BytesIO()
+        np.save(buf, value)
+        buf.seek(0)
+        data = base64.b64encode(bytes(buf.getbuffer()))
+
         return {
             "returns": key,
             key: ["array", key1],
-            key1: base64.b64encode(pickle.dumps(value)).decode("utf-8"),
+            key1: data.decode("utf-8"),
         }
     else:
         raise TypeError(
