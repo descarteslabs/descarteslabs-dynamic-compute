@@ -354,134 +354,6 @@ def _apply_binary(
 
 
 @operation
-def _pick_bands(arr, bands, args_props, **kwargs):
-    bands = json.loads(bands)
-    properties = deepcopy(args_props[0])
-
-    if isinstance(properties, dict):
-        # this is a Mosaic
-
-        # Parse the bands to pick from JSON
-        arr_bands = properties["bands"]
-
-        # Get the indices that each picked band corresponds to in the array
-        bands_idx = [arr_bands.index(band) for band in bands]
-
-        # Pick the bands
-        arr_bands = [arr[i] for i in bands_idx]
-        arr_bands = np.ma.stack(arr_bands, axis=0)
-
-        # Set the output bands according to the ones picked
-        properties["bands"] = bands
-
-    elif isinstance(properties, list):
-        # this is an ImageStack
-
-        if not properties:
-            # There are no images in this image collection
-            return arr, []
-
-        arr_bands = properties[0]["bands"]
-
-        # Get the indices that each picked band corresponds to in the array
-        bands_idx = [arr_bands.index(band) for band in bands]
-
-        # Pick the bands
-        arr_bands = [arr[:, i] for i in bands_idx]
-        arr_bands = np.ma.stack(arr_bands, axis=1)
-
-        for prop in properties:
-            # Set the output bands according to the ones picked
-            prop["bands"] = bands
-
-    return arr_bands, properties
-
-
-@operation
-def _rename_bands(arr, bands, args_props, **kwargs):
-    # Parse the renamed bands from JSON
-    bands = json.loads(bands)
-    properties = deepcopy(args_props[0])
-
-    def _rename(props, bands, arr_shape):
-        # Rename the bands
-        if "bands" in props.keys():
-            _band_lists = []
-            for _bands in [props["bands"], bands]:
-                if isinstance(_bands, str):
-                    _band_lists.append(_bands.split(" "))
-                else:
-                    _band_lists.append(_bands)
-
-            assert len(_band_lists[0]) == len(
-                _band_lists[1]
-            ), "Mismatched bands in rename_bands"
-
-            props["bands"] = bands
-        else:
-            props["bands"] = bands
-
-            assert (
-                len(bands) == arr_shape
-            ), f"Mismatch between provided band names ({len(bands)}) and actual bands ({arr_shape})"
-        return props
-
-    if len(arr.shape) == 3:
-        # this is a Mosaic
-        properties = _rename(properties, bands, arr.shape[0])
-
-    elif len(arr.shape) == 4:
-        # this is an ImageStack
-        for i, props in enumerate(properties):
-            properties[i] = _rename(props, bands, arr.shape[1])
-
-    return arr, properties
-
-
-@operation
-def _concat_bands(arr0, arr1, args_props, **kwargs):
-    # Concatenate the bands
-
-    properties0 = deepcopy(args_props[0])
-    properties1 = deepcopy(args_props[1])
-
-    def _concat_props(props0, props1, arr0, arr1):
-        if "bands" in props0.keys():
-            bands0 = props0["bands"]
-        else:
-            bands0 = [str(i) for i in range(len(arr0))]
-        if "bands" in props1.keys():
-            bands1 = props1["bands"]
-        else:
-            bands1 = [str(i + len(bands0)) for i in range(len(arr1))]
-
-        props0["bands"] = bands0 + bands1
-
-        if "product_id" in props1:
-            if props1["product_id"] != props0.get("product_id", ""):
-                props0.setdefault("other_product_ids", []).append(props1["product_id"])
-        return props0
-
-    if len(arr0.shape) == 3:
-        # this is a Mosaic
-        result = np.ma.concatenate((arr0, arr1), axis=0)
-        properties0 = _concat_props(properties0, properties1, arr0, arr1)
-
-    elif len(arr0.shape) == 4:
-        # this is an ImageStack
-        assert (
-            arr0.shape[0] == arr1.shape[0]
-        ), "Cannot concat bands, different number of images in each stack"
-
-        result = np.ma.concatenate((arr0, arr1), axis=1)
-
-        for prop0, prop1 in zip(properties0, properties1):
-            prop0 = _concat_props(prop0, prop1, arr0, arr1)
-
-    return result, properties0
-
-
-@operation
 def _index(idx, arr, args_props, **kwargs):
     props = args_props[1]
 
@@ -870,6 +742,41 @@ def _clip_data(obj, lo, hi, **kwargs):
     """
 
     return graft_client.apply_graft("clip", obj, lo, hi)
+
+
+def _band_op(main_obj, operation, bands=None, other_obj=None, **kwargs):
+    """Apply a band operation between a graft and optionally another graft
+
+    Params
+    main_obj : graft
+        The main graft that the operation is applying to
+    operation : str
+        The name of the operation, will be used by the backend to
+        determine what operation to return
+    other_obj : Union[graft, None]
+        Optional other graft, defaults to None. Will be None for cases
+        like abs(a), will be a valid graft for cases like a + b.
+
+    Returns
+    graft encoding the operation
+    """
+
+    from .image_stack import ImageStack
+    from .mosaic import Mosaic
+
+    if type(other_obj) in [ImageStack, Mosaic]:
+        main_pad = get_padding(main_obj)
+        other_pad = get_padding(other_obj)
+
+        assert main_pad == other_pad, "Operands have different padding"
+
+    return graft_client.apply_graft(
+        "band_op",
+        main_obj,
+        operation,
+        bands,
+        other_obj,
+    )
 
 
 def select_scenes(

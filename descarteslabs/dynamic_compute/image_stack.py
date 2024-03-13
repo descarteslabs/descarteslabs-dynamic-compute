@@ -29,13 +29,11 @@ from .dl_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
     _apply_binary,
+    _band_op,
     _clip_data,
-    _concat_bands,
     _index,
     _length,
     _mask_op,
-    _pick_bands,
-    _rename_bands,
     encode_function,
     filter_data,
     format_bands,
@@ -363,7 +361,7 @@ class ImageStack(
             return new_image_stack
 
         return ImageStack(
-            _pick_bands(self, json.dumps(bands)),
+            _band_op(self, "pick_bands", bands=json.dumps(bands), other_obj=None),
             bands=bands,
             product_id=self.product_id,
         )
@@ -396,8 +394,8 @@ class ImageStack(
         """Rename the bands of an array."""
 
         return ImageStack(
-            _rename_bands(self, json.dumps(format_bands(bands))),
-            bands=self.bands,
+            _band_op(self, "rename_bands", bands=json.dumps(bands), other_obj=None),
+            bands=bands,
             product_id=self.product_id,
         )
 
@@ -428,7 +426,10 @@ class ImageStack(
         else:
             new_bands = None
 
-        return ImageStack(_concat_bands(self, other), bands=new_bands)
+        return ImageStack(
+            _band_op(self, "concat_bands", bands=None, other_obj=other),
+            bands=new_bands,
+        )
 
     def mask(self, mask: ComputeMap) -> ImageStack:
         """

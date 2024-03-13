@@ -30,11 +30,9 @@ from .dl_utils import get_product_or_fail
 from .interactive.tile_url import validate_scales
 from .operations import (
     _apply_binary,
+    _band_op,
     _clip_data,
-    _concat_bands,
     _mask_op,
-    _pick_bands,
-    _rename_bands,
     create_mosaic,
     format_bands,
     is_op,
@@ -259,7 +257,14 @@ class Mosaic(
         return_value = self[return_key]
 
         if not (is_op(return_value) and op_type(return_value) == "mosaic"):
-            return Mosaic(_pick_bands(self, json.dumps(format_bands(bands))))
+            return Mosaic(
+                _band_op(
+                    self,
+                    "pick_bands",
+                    bands=json.dumps(format_bands(bands)),
+                    other_obj=None,
+                )
+            )
 
         args = op_args(return_value)
 
@@ -281,7 +286,14 @@ class Mosaic(
     def rename_bands(self, bands):
         """Rename the bands of an array."""
 
-        return Mosaic(_rename_bands(self, json.dumps(format_bands(bands))))
+        return Mosaic(
+            _band_op(
+                self,
+                "rename_bands",
+                bands=json.dumps(format_bands(bands)),
+                other_obj=None,
+            )
+        )
 
     def unpack_bands(
         self, bands: Union[str, List[str]]
@@ -342,7 +354,14 @@ class Mosaic(
         if not isinstance(other, Mosaic):
             other = self.pick_bands(other)
 
-        return Mosaic(_concat_bands(self, other))
+        return Mosaic(
+            _band_op(
+                self,
+                "concat_bands",
+                bands=None,
+                other_obj=other,
+            )
+        )
 
     def clip(self, lo: Number, hi: Number) -> Mosaic:
         """

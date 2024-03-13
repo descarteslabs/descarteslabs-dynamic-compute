@@ -11,7 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - base64 encode numpy arrays using the numpy save functionality instead of pickling them
-- masks are now keyword ops
+- Masks are now keyword ops
+- Band operations are now keyword ops
 
 ## v1.0.0 - 03/12/2024
 
