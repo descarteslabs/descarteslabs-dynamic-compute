@@ -763,6 +763,16 @@ def get_padding(graft):
     return graft[pad_key]
 
 
+def _resolution_graft() -> dict:
+    """
+    Returns
+    -------
+    resolution_graft: dict
+        Graft that evaluates to resolution.
+    """
+    return graft_client.apply_graft("resolution")
+
+
 def _math_op(main_obj, operation, other_obj=None, **kwargs):
     """Apply a math operation between a graft and optionally another graft
 

@@ -12,6 +12,7 @@ from .compute_map import (
     log,
     log10,
     pi,
+    resolution,
     sin,
     sqrt,
     tan,
@@ -26,6 +27,7 @@ from . import catalog  # isort: skip
 
 __all__ = [
     "as_compute_map",
+    "resolution",
     "catalog",
     "share_catalog_blob",
     "list_catalog_blobs",

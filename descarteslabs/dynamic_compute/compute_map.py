@@ -16,7 +16,7 @@ import numpy as np
 from .graft.client import client as graft_client
 from .graft.interpreter.interpreter import interpret
 from .graft.syntax import syntax as graft_syntax
-from .operations import _func_op, _math_op, compute_aoi
+from .operations import _func_op, _math_op, _resolution_graft, compute_aoi
 
 
 class DotDict(dict):
@@ -102,6 +102,10 @@ def clip_data(*args, **kwargs):
     return None
 
 
+def graft_resolution(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -168,6 +172,7 @@ class ComputeMap(dict, ABC):
                     ("math", math_op),
                     ("reduction", reduction_op),
                     ("clip", clip_data),
+                    ("resolution", graft_resolution),
                 ],
                 debug=True,
             )()
@@ -302,6 +307,18 @@ def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray, List]) -> Comp
         return ComputeMap(a)
 
     return a
+
+
+def resolution():
+    """
+    Generate ComputeMap representation of resolution.
+
+    Returns
+    -------
+    Resolution: ComputeMap
+        A dynamic-compute object representation of resolution.
+    """
+    return as_compute_map(_resolution_graft())
 
 
 def type_max(
