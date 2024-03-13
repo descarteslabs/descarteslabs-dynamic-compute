@@ -481,162 +481,6 @@ def _concat_bands(arr0, arr1, args_props, **kwargs):
     return result, properties0
 
 
-def _adaptive_mask(mask, data):
-    if mask.ndim not in [2, 3, 4]:
-        raise Exception(
-            (
-                "Masks must be Mosaic of ImageStack objects. "
-                f"Shape of input mask was {mask.shape}."
-            )
-        )
-
-    if data.ndim not in [2, 3, 4]:
-        raise Exception(
-            (
-                "Data to be masked must be Mosaic of ImageStack objects. "
-                f"Shape of input data was {data.shape}."
-            )
-        )
-
-    if (
-        mask.ndim == 2
-    ):  # this is a Mosiac with one band, that for whatever reason didn't come back as (1,row,cols)
-
-        masked_data = np.ma.masked_array(data, False)
-        index = tuple(
-            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
-        )
-        masked_data.mask |= mask[index]
-        return masked_data
-
-    if (
-        mask.ndim == 3
-    ):  # the mask is a Mosaic with multiple bands or a single band in an ImageStack
-        if (
-            data.ndim == 4
-        ):  # data is an ImageStack, need to have the same number of bands
-            if mask.shape[0] != data.shape[1] and mask.shape[0] != 1:
-                raise Exception(
-                    (
-                        "Masks must be single-band or have the same number of bands as the ImageStack. "
-                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
-                    )
-                )
-        else:  # data is a Mosaic, need to have the same number of bands
-            if mask.shape[0] != data.shape[0] and mask.shape[0] != 1:
-                raise Exception(
-                    (
-                        "Masks must be single-band or have the same number of bands as the Mosaic. "
-                        f"Mask shape: {mask.shape}. Mosaic shape: {data.shape}."
-                    )
-                )
-
-        if mask.shape[0] == 1:
-            mask = np.squeeze(mask, axis=0)
-
-        masked_data = np.ma.masked_array(data, False)
-        index = tuple(
-            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
-        )
-        masked_data.mask |= mask[index]
-        return masked_data
-
-    if mask.ndim == 4:  # the mask is an ImageStack
-        if (
-            data.ndim == 3
-        ):  # the data is a Mosaic with multiple bands or a single band in an ImageStack
-            raise Exception(
-                "Cannot mask Mosaic with ImageStack, unless the ImageStack has been reduced over the 'images' axis."
-            )
-        else:
-            if mask.shape[0] != data.shape[0]:
-                raise Exception(
-                    (
-                        "ImageStack masks have same number of scenes as the ImageStack you are trying to mask. "
-                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
-                    )
-                )
-            elif mask.shape[1] != data.shape[1] and mask.shape[1] != 1:
-                raise Exception(
-                    (
-                        "ImageStack masks must be singular band or have the same number of "
-                        "bands as the ImageStack you are trying to mask. "
-                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
-                    )
-                )
-
-    if isinstance(data, np.ma.MaskedArray):
-        masked_data = data
-    else:
-        masked_data = np.ma.masked_array(data, False)
-    if mask.shape[1] == 1:
-
-        # The computational intent of the following three lines of code is
-        #
-        # for i in range(masked_data.shape[1]):
-        #     masked_data.mask[:, i, :, :] = mask[:, 0, :, :]
-        #
-        # The conventional wisdom is that iteration is bad. However,
-        # I can only seem to get the desired broadcast behavior by swapping
-        # the fist two axes, doing the assignment, and then swapping back.
-
-        temp = np.moveaxis(masked_data, (0, 1, 2, 3), (1, 0, 2, 3))
-        temp.mask |= np.moveaxis(mask, (0, 1, 2, 3), (1, 0, 2, 3))
-        masked_data = np.moveaxis(temp, (0, 1, 2, 3), (1, 0, 2, 3))
-    else:
-        masked_data.mask |= mask
-
-    return masked_data
-
-
-def adaptive_mask(mask, data):
-    """
-    This function creates a mask for data assuming that the mask may
-    need to be extended to cover more dimensions.  If `data` has more
-    leading dimensions than `mask`, `mask` is extended along those leading
-    dimensions.
-
-    If `data` has more dimensions in the second position than `mask`, `mask`
-    is extended along that dimensions.
-
-    A few sample use cases follow: Assume we have raster data whose shape is
-    (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
-    whose shape is just (pixel-rows, pixel-cols). This function will extend the
-    mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
-
-    Similarly, if the data is (scenes, bands, pixel-rows, pixel-cols), we extend
-    the mask to (scenes, bands, pixel-rows, pixel-cols) to match. If instead, the
-    mask is (scenes, bands=1, pixel-rows, pixel-cols) while the data is
-    (scenes, bands=3, pixel-rows, pixel-cols), we will extend to match both
-    cases.
-
-    Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
-    this will fail -- we  don't check that present dimensions agree, we only add
-    missing dimensions.
-
-    Parmaters
-    ---------
-    mask: numpy.ndarray
-        Mask to apply
-    data: numpy.ndarray
-        Data to mask
-
-    Returns
-    -------
-    md : numpy.ma.core.MaskedArray
-        Masked array.
-    """
-    try:
-        return _adaptive_mask(mask, data)
-    except Exception as e:
-        if str(e).find("'bitwise_or' not supported for the input types") >= 0:
-            raise Exception(
-                f"Encountered an error applying a mask of type {mask.dtype} to an array of type {data.dtype}"
-            )
-        else:
-            raise e
-
-
 @operation
 def _index(idx, arr, args_props, **kwargs):
     props = args_props[1]
@@ -898,6 +742,15 @@ def create_mosaic(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         pad=pad,
+    )
+
+
+def _mask_op(data, mask, **kwargs):
+
+    return graft_client.apply_graft(
+        "mask",
+        data,
+        mask,
     )
 
 

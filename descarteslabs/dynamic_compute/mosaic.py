@@ -32,9 +32,9 @@ from .operations import (
     _apply_binary,
     _clip_data,
     _concat_bands,
+    _mask_op,
     _pick_bands,
     _rename_bands,
-    adaptive_mask,
     create_mosaic,
     format_bands,
     is_op,
@@ -320,9 +320,7 @@ class Mosaic(
         masked: Mosaic
             Masked mosaic.
         """
-        return Mosaic(
-            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb)
-        )
+        return Mosaic(_mask_op(self, mask))
 
     def concat_bands(self, other: Union[Mosaic, str, List[str]]) -> Mosaic:
         """

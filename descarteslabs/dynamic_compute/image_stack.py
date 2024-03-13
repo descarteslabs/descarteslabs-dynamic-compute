@@ -33,9 +33,9 @@ from .operations import (
     _concat_bands,
     _index,
     _length,
+    _mask_op,
     _pick_bands,
     _rename_bands,
-    adaptive_mask,
     encode_function,
     filter_data,
     format_bands,
@@ -447,7 +447,7 @@ class ImageStack(
         """
 
         return ImageStack(
-            _apply_binary(mask, self, adaptive_mask, lambda pa, pb, **kwargs: pb),
+            _mask_op(self, mask),
             bands=self.bands,
             product_id=self.product_id,
         )
