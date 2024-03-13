@@ -353,26 +353,19 @@ def _apply_binary(
     return encoded_func(arg0, arg1)
 
 
-@operation
-def _index(idx, arr, args_props, **kwargs):
-    props = args_props[1]
-
-    if not isinstance(props, list):
-        raise Exception("Cannot index into a non-list")
-
-    try:
-        image_prop = props[idx]
-    except IndexError:
-        raise IndexError(
-            f"Index {idx} is outside the bounds of of a list of size {props}"
-        )
-
-    return arr[idx], image_prop
+def _index(idx, arr, **kwargs):
+    return graft_client.apply_graft(
+        "index",
+        arr,
+        idx,
+    )
 
 
-@operation
-def _length(arr, *args, **kwargs):
-    return arr.shape[0], {"return_type": "int"}
+def _length(image_stack, **kwargs):
+    return graft_client.apply_graft(
+        "length",
+        image_stack,
+    )
 
 
 def _normalize_graft(graft: Dict, counter: Optional[Callable[[], int]] = None) -> Dict:
