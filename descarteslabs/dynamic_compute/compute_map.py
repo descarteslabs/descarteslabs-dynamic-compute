@@ -106,6 +106,22 @@ def graft_resolution(*args, **kwargs):
     return None
 
 
+def band_op(*args, **kwargs):
+    return None
+
+
+def index(*args, **kwargs):
+    return None
+
+
+def length(*args, **kwargs):
+    return None
+
+
+def mask(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -173,6 +189,10 @@ class ComputeMap(dict, ABC):
                     ("reduction", reduction_op),
                     ("clip", clip_data),
                     ("resolution", graft_resolution),
+                    ("band_op", band_op),
+                    ("index", index),
+                    ("length", length),
+                    ("mask", mask),
                 ],
                 debug=True,
             )()
