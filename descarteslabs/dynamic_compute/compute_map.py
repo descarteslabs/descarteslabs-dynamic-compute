@@ -643,6 +643,22 @@ class NumpyReductionMixin:
             raise NotImplementedError(f"argmax reduction over {axis} not implemented")
         return self.reduce("argmax", axis)
 
+    def argmin(self, axis):
+        """
+            Apply np.ma.argmin to the ComputeMap
+
+        Args:
+            axis: (str)
+                Axis over which to call the reducer. If called on a Mosaic, must be in ["bands"].
+                If called on an ImageStack, must be in ["bands", "images"]
+
+        Returns:
+            Mosaic
+        """
+        if axis not in ["bands", "images"]:
+            raise NotImplementedError(f"argmax reduction over {axis} not implemented")
+        return self.reduce("argmin", axis)
+
 
 #
 # generator for functional operations
