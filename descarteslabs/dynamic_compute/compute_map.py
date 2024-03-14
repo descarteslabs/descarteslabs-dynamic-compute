@@ -122,6 +122,10 @@ def mask(*args, **kwargs):
     return None
 
 
+def functional(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -193,6 +197,7 @@ class ComputeMap(dict, ABC):
                     ("index", index),
                     ("length", length),
                     ("mask", mask),
+                    ("functional", functional),
                 ],
                 debug=True,
             )()
