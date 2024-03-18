@@ -8,13 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Added a resolution operator
 - Added an `argmin` reduction
-- Added a `dot` operator
 
 ### Changed
 
 - base64 encode numpy arrays using the numpy save functionality instead of pickling them
 - Masks are now keyword ops
 - Band operations are now keyword ops
+- Re-implemented the `dot` operator as a keyword operation.
 
 ## v1.0.0 - 03/12/2024
 
