@@ -5,9 +5,8 @@ import numpy as np
 
 from .compute_map import ComputeMap
 from .image_stack import ImageStack
-from .image_stack import dot as image_stack_dot
 from .mosaic import Mosaic
-from .mosaic import dot as mosaic_dot
+from .operations import _dot_op
 
 
 def type_resolver(t: Type) -> Type:
@@ -25,30 +24,69 @@ def type_resolver(t: Type) -> Type:
     return t
 
 
-def simple_mul(a, b):
-    # Default implementation for dot for simple cases.
-    return a * b
-
-
-# A mapping from argument types, i.e. (type(operand1), type(operand2))
-# to implementations of dot.
-#
-# Special case code such as this feels like starting down a path that
-# ends in having to rework a bunch of stuff to handle some unanticipated
-# case. If we have anticipate a limited set of proxy objects, this is
-# workable.
-dispatch_dict = {
-    (Mosaic, Number): simple_mul,
-    (Number, Mosaic): simple_mul,
-    (ImageStack, Number): simple_mul,
-    (Number, ImageStack): simple_mul,
-    (Mosaic, np.ndarray): mosaic_dot,
-    (np.ndarray, Mosaic): mosaic_dot,
-    (Mosaic, Mosaic): mosaic_dot,
-    (ImageStack, np.ndarray): image_stack_dot,
-    (np.ndarray, ImageStack): image_stack_dot,
-    (ImageStack, ImageStack): image_stack_dot,
+# Pairs of operand types that can be handled with multiplication
+simple_supported_type_pairs = {
+    (Mosaic, Number),
+    (Number, Mosaic),
+    (ImageStack, Number),
+    (Number, ImageStack),
 }
+
+# Pairs of operand types that can be handled with einsum via
+# the dot keyword argument.
+complex_supported_type_pairs = {
+    (Mosaic, np.ndarray),
+    (np.ndarray, Mosaic),
+    (Mosaic, Mosaic),
+    (ImageStack, np.ndarray),
+    (np.ndarray, ImageStack),
+    (ImageStack, ImageStack),
+}
+
+
+def _return_type(
+    a: np.ndarray | Mosaic | ImageStack, b: np.ndarray | Mosaic | ImageStack
+) -> Type:
+    """
+    Compute the return type based on the input arguments
+
+    Parameters
+    ----------
+    a: np.ndarray | Mosaic | ImageStack
+        First operand
+    b: np.ndarray | Mosaic | ImageStack
+        Second operand
+
+    Returns
+    -------
+    type: Type
+        Return type for the two operands
+    """
+    a_type, b_type = type_resolver(type(a)), type_resolver(type(b))
+
+    if ImageStack not in [a_type, b_type]:
+        # All operatins involving any Mosaic, return a mosaic.
+        return Mosaic
+
+    if a_type == b_type:
+        # Dot for two ImageStacks means a dot product along scenes,
+        # Resulting in a Mosaic.
+        return Mosaic
+
+    if (
+        a_type == np.ndarray
+        and len(a.shape) == 1
+        or b_type == np.ndarray
+        and len(b.shape) == 1
+    ):
+        # Dot for an ImageStack and a vector means a dot-product along scenes,
+        # Resulting in a Mosaic
+        return Mosaic
+
+    # One operand is an ImageStack and the other is a numpy array representing a matrix.
+    # The dot operations is matrix multiplication along the scenes axis, and returns a new
+    # ImageStack whose scenes are a linear combination of the input scenes.
+    return ImageStack
 
 
 def dot(
@@ -71,10 +109,25 @@ def dot(
         Proxy object for the product of a and b
     """
 
-    # Implementation for dot
-    def fail(aa, bb):
-        raise NotImplementedError(f"dot not implemented for {type(aa)}, {type(bb)}")
+    type_pair = (type_resolver(type(a)), type_resolver(type(b)))
 
-    type_tuple = (type_resolver(type(a)), type_resolver(type(b)))
+    if type_pair[0] == np.ndarray and len(a.shape) not in [1, 2]:
+        raise Exception(
+            "First operand is an array, and so it must be a matrix of a vector, but has shape {a.shape}"
+        )
 
-    return dispatch_dict.get(type_tuple, fail)(a, b)
+    if type_pair[1] == np.ndarray and len(b.shape) not in [1, 2]:
+        raise Exception(
+            "Second operand is an array, and so it must be a matrix of a vector, but has shape {b.shape}"
+        )
+
+    if type_pair in simple_supported_type_pairs:
+        return a * b
+
+    if type_pair in complex_supported_type_pairs:
+        a_type = type_pair[0].__name__
+        b_type = type_pair[1].__name__
+
+        return _return_type(a, b)(_dot_op(a, b, a_type, b_type))
+
+    raise NotImplementedError(f"dot not implemented for {type(a)}, {type(b)}")

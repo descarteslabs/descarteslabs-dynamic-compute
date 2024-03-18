@@ -9,7 +9,6 @@ from numbers import Number
 from typing import Dict, List, Optional, Tuple, Union
 
 import ipyleaflet
-import numpy as np
 
 from .compute_map import (
     AddMixin,
@@ -23,20 +22,17 @@ from .compute_map import (
     SignedMixin,
     SubMixin,
     TrueDivMixin,
-    as_compute_map,
 )
 from .datetime_utils import normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
 from .interactive.tile_url import validate_scales
 from .operations import (
-    _apply_binary,
     _band_op,
     _clip_data,
     _mask_op,
     create_mosaic,
     format_bands,
     is_op,
-    masked_einsum,
     op_args,
     op_type,
     reset_graft,
@@ -487,160 +483,3 @@ class Mosaic(
         """
 
         return cls(**MosaicSerializationModel.from_json(data).dict())
-
-
-def property_propagation_for_dot(
-    properties_a: dict, properties_b: dict, **kwargs
-) -> dict:
-    """
-    Provide logic for property propagation used in the `dot` operation
-
-    Parameters
-    ----------
-    properties_a: dict
-        Properties for the first argument
-    properties_b: dict
-        Properties for the second argument
-
-    Returns
-    -------
-    new_properties: dict
-        Properties for the result of the dot operation.
-    """
-    new_properties = {}
-
-    # Note that if a or b is a matrix it will have no padding.
-    pad_a = properties_a.get("pad", None)
-    pad_b = properties_b.get("pad", None)
-
-    if pad_a and pad_b and pad_a != pad_b:
-        raise Exception("Cannot dot objects with different padding")
-
-    if pad_a:
-        new_properties["pad"] = pad_a
-    elif pad_b:
-        new_properties["pad"] = pad_b
-
-    pid_a = properties_a.get("product_id", None)
-    pid_b = properties_b.get("product_id", None)
-
-    if pid_a:
-        new_properties["product_id"] = pid_a
-        if pid_b and pid_a != pid_b:
-            new_properties["other_product_id"] = pid_b
-    elif pid_b:
-        new_properties["product_id"] = pid_b
-
-    return new_properties
-
-
-def dot(a: Union[Mosaic, np.ndarray], b: Union[Mosaic, np.ndarray]) -> Mosaic:
-    """
-    Specific implementation of dot for Mosaic objects. Either a's type or b's
-    must be Mosaic, or a subclass of Mosaic. The other supported type is
-    numpy.ndarray. This function assumes that Mosaic arguments are proxy objects
-    referring to bands by pixel rows by pixel columns, and that the operation
-    will be repeated for each pixel. In particular this does not support
-    a Mosaic object that is matrix-per-pixel. The behavior of dot is as follows:
-
-    1. If both arguments are Mosaics, or subclasses thereof, return a Mosaic object
-    with a single band containing the inner product along the bands of the input
-    Mosaics. Note that this function cannot detect a dimension mismatch, e.g.
-    dot applied two mosaics with differing numbers of bands.
-
-    2. If one argument is a Mosaic and the other argument is a matrix, matrix-vector
-    (or vector matrix) multiplication is performed per pixel. Again, this
-    function cannot check dimension agreement.
-
-    3. If one argument is a Mosaic and the other argument is a vector, perform a
-    dot product along the mosaic bands.
-
-    Parameters
-    ----------
-    a: Union[Mosaic, np.ndarray]
-        First operand
-    b: Union[Mosaic, np.ndarray]
-        Second operand
-
-    Returns
-    -------
-    product: Mosaic
-        Product of a and b.
-    """
-    if not (issubclass(type(a), Mosaic) or issubclass(type(b), Mosaic)):
-        raise NotImplementedError(
-            f"`mosaic.dot` not implemented for {type(a)}, {type(b)}"
-        )
-
-    if issubclass(type(a), Mosaic):
-        if issubclass(type(b), Mosaic):
-            # Mosaic times mosaic, multiply and sum along bands, then replace
-            # the band dimension.
-            return Mosaic(
-                _apply_binary(
-                    a,
-                    b,
-                    lambda aa, bb: masked_einsum("irc,irc->rc", aa, bb)[None, ...],
-                    property_propagation_for_dot,
-                )
-            )
-        else:
-            if not isinstance(b, np.ndarray):
-                raise NotImplementedError(
-                    f"`mosaic.dot` not implemented for {type(a)}, {type(b)}"
-                )
-
-            # Mosaic times numpy array
-            if len(b.shape) == 2:
-                # Mosaic time matrix -- perform the matrix multiplication along
-                # the bands.
-                return Mosaic(
-                    _apply_binary(
-                        a,
-                        as_compute_map(b),
-                        lambda aa, bb: masked_einsum("irc,ij->jrc", aa, bb),
-                        property_propagation_for_dot,
-                    )
-                )
-            elif len(b.shape) == 1:
-                # Mosaic time vector -- perform the matrix multiplication
-                # along the bands.
-                return Mosaic(
-                    _apply_binary(
-                        a,
-                        as_compute_map(b),
-                        lambda aa, bb: masked_einsum("irc,i->rc", aa, bb)[None, ...],
-                    )
-                )
-            else:
-                raise Exception(
-                    f'Incompatible dimension for "b" {b.shape} in mosaic.dot'
-                )
-    else:
-        if not isinstance(a, np.ndarray):
-            raise NotImplementedError(
-                f"`mosaic.dot` not implemented for {type(a)}, {type(b)}"
-            )
-
-        # numpy array times Mosaic
-        if len(a.shape) == 2:
-            # Matrix times mosaic -- perform the matrix multiplication along the bands.
-            return Mosaic(
-                _apply_binary(
-                    as_compute_map(a),
-                    b,
-                    lambda aa, bb: masked_einsum("ij,jrc->irc", aa, bb),
-                    property_propagation_for_dot,
-                )
-            )
-        elif len(a.shape) == 1:
-            # Vector times mosaic -- perform the matrix multiplication along the bands.
-            return Mosaic(
-                _apply_binary(
-                    as_compute_map(a),
-                    b,
-                    lambda aa, bb: masked_einsum("i,irc->rc", aa, bb)[None, ...],
-                )
-            )
-        else:
-            raise Exception(f'Incompatible dimension for "a" {a.shape} in `mosaic.dot`')

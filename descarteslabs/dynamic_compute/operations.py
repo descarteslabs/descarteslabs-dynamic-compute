@@ -6,7 +6,6 @@ import io
 import json
 import os
 import pickle
-from copy import deepcopy
 from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlencode
@@ -104,253 +103,6 @@ def _get_pid_bands_pad(
         properties.get("bands", None),
         properties.get("pad", None),
     )
-
-
-def _default_property_propagation(
-    props0: Union[List[dict], dict],
-    props1: Union[List[dict], dict],
-    band_op: Optional[str] = "same",
-    op_name: Optional[str] = None,
-) -> Union[List[Dict], Dict]:
-    """This function provides a default implementation of property propagation.
-
-    Dynamic Compute tracks data and metadata through steps of an
-    evaluation.  Binary operations take two pieces of data and two
-    pieces of metadata (often called properties) to generate a new
-    piece of data and a new piece of metadata. Dynamic Compute creates
-    binary operations with `_apply_binary`.
-
-    `_apply_binary` requires two operations, first, a function that
-    combines the two pieces of input data, second a function that
-    combines the two pieces of metadata to generate the metadata for
-    the result of the binary operation.
-
-    This function provides a default implementation of the second
-    function required by `_apply_binary`. It may not be appropriate in
-    all cases.
-
-    Parameters
-    ----------
-    props0: Union[List[dict], dict]
-        Properties (metadata for the first operand)
-    props1: Union[List[dict], dict]
-        Properties (metadata for the second operand)
-    band_op: Optional[str] = "same"
-        Either "same" meaning that bands are to be operated on together or
-        "concat" meaning that input bands will be concatenated together.
-    op_name: Optional[str] = None
-        The name of the operation. This is used to create band names for the
-        result
-
-    Returns
-    -------
-    new_props: Union[List[dict], dict]
-        Properties for the result of the binary operation
-    """
-    assert band_op in ["same", "concat"], f"Unrecognized band_op {band_op}"
-
-    pid0, bands0, pad0 = _get_pid_bands_pad(props0)
-    pid1, bands1, pad1 = _get_pid_bands_pad(props1)
-
-    if pad0 and pad1 and pad0 != pad1:
-        raise Exception(f"Operands have different padding {pad0} {pad1}")
-
-    new_pad = None
-    if pad0:
-        new_pad = pad0
-    elif pad1:
-        new_pad = pad1
-    else:
-        new_pad = pad0
-
-    new_bands = None
-
-    if band_op == "same":
-        # We aren't concatenating bands.
-
-        if bands0 and bands1:
-            # We have band information.
-
-            if len(bands0) > 1 and len(bands1) > 1:
-                # If either sets of bands has length 1, then we might be
-                # using one to mask the other.
-
-                if len(bands0) != len(bands1):
-                    # We aren't masking and so we need the same number of bands.
-                    raise Exception(
-                        f"Operands have different numbers of bands {len(bands0)} {len(bands1)}"
-                    )
-
-                elif bands0 == bands1:
-                    new_bands = bands0
-                else:
-                    new_bands = [
-                        f"{band0}_{op_name}_{band1}"
-                        for band0, band1 in zip(bands0, bands1)
-                    ]
-
-            else:
-                if len(bands0) == 1:
-                    new_bands = bands1
-                else:
-                    new_bands = bands0
-
-        elif bands0:
-            new_bands = bands0
-
-        elif bands1:
-            new_bands = bands1
-    else:
-        # We are concatenating bands
-
-        if not bands0 or not bands1:
-            raise Exception("Cannot concat bands when bands for one operand is missing")
-        else:
-            new_bands = bands0 + bands1
-
-    new_pid = None
-    other_pid = None
-    if pid0 and not pid1:
-        new_pid = pid0
-    elif pid1 and not pid0:
-        new_pid = pid1
-    elif pid0 and pid1 and pid0 != pid1:
-        new_pid = pid0
-        other_pid = pid1
-
-    if isinstance(props0, dict) and isinstance(props1, list):
-        props0, props1 = props1, props0
-
-    props0 = deepcopy(props0)
-
-    if isinstance(props0, dict):
-
-        props0.pop("shape", None)
-
-        props0.pop("pad", None)
-        if new_pad:
-            props0["pad"] = new_pad
-        else:
-            props0["pad"] = 0
-
-        props0.pop("bands", None)
-        if new_bands:
-            props0["bands"] = new_bands
-
-        props0.pop("product_id", None)
-        if new_pid:
-            props0["product_id"] = new_pid
-
-        other_product_ids = props0.get("other_product_ids", [])
-        if other_pid:
-            other_product_ids.append(other_pid)
-            props0["other_product_ids"] = other_product_ids
-
-        return props0
-
-    elif isinstance(props0, list):
-
-        for prop in props0:
-
-            prop.pop("shape", None)
-
-            prop.pop("pad", None)
-            if new_pad:
-                prop["pad"] = new_pad
-            else:
-                prop["pad"] = 0
-
-            prop.pop("bands", None)
-            if new_bands:
-                prop["bands"] = new_bands
-
-            prop.pop("product_id", None)
-            if new_pid:
-                prop["product_id"] = new_pid
-
-            prop.pop("other_product_id", None)
-            if other_pid:
-                prop["other_product_id"] = other_pid
-
-        return props0
-
-    return {}
-
-
-def _apply_binary(
-    arg0: Dict,
-    arg1: Dict,
-    value_func: Callable[[Any, Any], Any],
-    prop_func: Optional[
-        Callable[
-            [
-                Union[List[dict], dict],
-                Union[List[dict], dict],
-                Optional[str],
-                Optional[str],
-            ],
-            Union[List[dict], dict],
-        ]
-    ] = _default_property_propagation,
-    band_op="same",
-    op_name=None,
-) -> Dict:
-    """
-    Create a graft that applies a binary operation to two input grafts.
-
-    Parameters
-    ----------
-    args0: Dict
-        Graft representing first operand
-    args1: Dict
-        Graft representing second operand
-    value_func: Callable[[Any, Any], Any]
-        Function for combining values to get a new value, must be cloudpickle-able. The arguments are
-        value1, value2, the return type is the new value.
-    prop_func: Optional[Callable[Dict, Dict, Optional[str], Optional[str]], Dict]
-        Function for combining properties of the input operands. The arguments properties for value1,
-        properties for value2, band_op (either "same" or "concat"), and op_name. This function handles
-        how properties for binary operations should be handled. There are two important features of this
-        First, we assume that how the properties are processed wont depend on how the values of the input.
-        By and large this should be OK, as things like number of bands or array shape are encoded in
-        properties. Second, this argument defaults to _default_property_propagation, which will cover a
-        number of cases.
-    band_op: Optional[str]
-        How bands should be handled, defaults to "same", passed on to prop_func.
-    op_name: Optional[str]
-        Name of the operation to perform, defaults to None
-
-    Returns
-    -------
-    encoded_func: Dict
-        Encoded function applied to the input arguments, as a graft
-    """
-
-    @operation
-    def encoded_func(a, b, args_props, *args, **kwargs):
-        # Note that the order of the next two lines of code is important.
-        # Either can raise an exception, the first will raise an exception
-        # because of an incompatibility in the requested operation, e. g.
-        # adding incompatible bands.
-        #
-        # If the first line of code raises an exception (and it were ignored)
-        # the second *might* raise an exception. If it does likely the exception
-        # will be less informative than the exception from the first line.
-        #
-        # For example adding a mosaic with "red green blue" to a mosaic with
-        # "red green" will cause the first line to report incompatible bands and
-        # list the bands, while the second line of code will likely raise an
-        # exception like, "operands could not be broadcast together".
-        #
-        # Put another way, we test if the properties of the operands are compatible
-        # before doing the value calculation.
-        returned_properties = prop_func(
-            args_props[0], args_props[1], band_op=band_op, op_name=op_name
-        )
-        returned_values = value_func(a, b)
-        return returned_values, returned_properties
-
-    return encoded_func(arg0, arg1)
 
 
 def _index(idx, arr, **kwargs):
@@ -696,6 +448,24 @@ def _reduction_op(reducer, axis, obj_type_str, obj, **kwargs):
         axis,
         obj_type_str,
     )
+
+
+def _dot_op(op1: dict, op2: dict, type1: str, type2: str) -> dict:
+    """
+    Create a graft for a dot operation
+
+    Parameters
+    ----------
+    op1: dict
+        Graft for the first operand
+    op2: dict
+        Graft for the second operand
+    type1: str
+        String of the type of the first operand
+    type2: str
+        String of the type of the second operand
+    """
+    return graft_client.apply_graft("dot", op1, op2, type1, type2)
 
 
 def _func_op(obj, operation, **kwargs):
@@ -1109,78 +879,3 @@ def op_args(graft_op_node: list) -> list:
         raise ValueError("Cannot get op args of graft node that is not an operation")
 
     return graft_op_node[1:]
-
-
-def _nan_mask(op: Union[np.ndarray, np.ma.MaskedArray]) -> np.ndarray:
-    """
-    Create an array where masked values are nans and non-masked values are zero
-
-    Parameters
-    ----------
-    op: Union[np.ndarray, np.ma.MaskedArray]
-        Operand for which we want the nan-mask
-
-    Returns
-    -------
-    nan_mask: np.ndarray
-        Nan-mask for operand
-    """
-    mask = np.zeros(op.shape)
-
-    if not isinstance(op, np.ma.MaskedArray):
-        return mask
-
-    mask[op.mask] = np.nan
-
-    return mask
-
-
-def masked_einsum(
-    signature: str,
-    op1: Union[np.ndarray, np.ma.MaskedArray],
-    op2: Union[np.ndarray, np.ma.MaskedArray],
-) -> Union[np.ndarray, np.ma.MaskedArray]:
-    """
-    Compute an einsum that respects masks.
-
-    Parameters
-    ----------
-    signature: str
-        `np.einsum` signature
-    op1: Union[np.ndarray, np.ma.MaskedArray]
-        First operand
-    op2: Union[np.ndarray, np.ma.MaskedArray]
-        Second operand
-
-    Returns
-    -------
-    product: Union[np.ndarray, np.ma.MaskedArray]
-        Masked result for einsum
-    """
-    unmasked_result = np.einsum(signature, op1, op2)
-
-    if not isinstance(op1, np.ma.MaskedArray) and not isinstance(
-        op2, np.ma.MaskedArray
-    ):
-        return unmasked_result
-
-    # Implementation idea: einsum is akin to matrix multiplicataion in that
-    # it uses multiplication and addition to get a result. Masks are booleans
-    # and for booleans multiplication is "and" and addition is "or", applying
-    # einsum directly to the masks may not give the desired result.
-    #
-    # For each operatnd, we create a new mask where False (not masked) is 0 and
-    # True (masked) is nan, and then take advantage that nans propagate as desired,
-    # e.g.
-    #
-    #     nan + anything == anything + nan == nan
-    #     nan * anything == anything * nan == nan
-    #
-    # We apply einsum on the two nan-masks, then mask the result for any nan result
-
-    nan_mask1 = _nan_mask(op1)
-    nan_mask2 = _nan_mask(op2)
-
-    mask = np.isnan(np.einsum(signature, nan_mask1, nan_mask2))
-
-    return np.ma.masked_array(unmasked_result, mask)

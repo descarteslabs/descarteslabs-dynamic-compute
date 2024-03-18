@@ -126,6 +126,10 @@ def functional(*args, **kwargs):
     return None
 
 
+def dot(*args, **kwargs):
+    return None
+
+
 class ComputeMap(dict, ABC):
     """
     A wrapper class to support operations on grafts. Proxy objects should all be
@@ -198,6 +202,7 @@ class ComputeMap(dict, ABC):
                     ("length", length),
                     ("mask", mask),
                     ("functional", functional),
+                    ("dot", dot),
                 ],
                 debug=True,
             )()

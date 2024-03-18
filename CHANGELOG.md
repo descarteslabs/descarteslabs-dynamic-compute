@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Added a resolution operator
 - Added an `argmin` reduction
+- Added a `dot` operator
 
 ### Changed
 
@@ -40,38 +41,38 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Expand the client to allow python versions >=3.8, <3.12
 - Added the ~ (inversion) operator for Mosaics and ImageStacks
 
-## v0.9.8 - 11/20/23
+## v0.9.8 - 11/20/2023
 
 ### Fixed
 
 - Masking logic ignored prior mask on input.
 
-## v0.9.7 - 11/15/23
+## v0.9.7 - 11/15/2023
 
 ### Changed
 
 - The PixelInspector now shows the lat/lon of the clicked location.
 - Added memory optimizations to the backend
 
-## v0.9.6 - 11/08/23
+## v0.9.6 - 11/08/2023
 
 ### Changed
 
 - Backend optimizations to help scalability
 
-## v0.9.5 - 10/31/23
+## v0.9.5 - 10/31/2023
 
 ### Fixed
 
 - Fixed a bug where `dc.dot` did not respect masking.
 
-## v0.9.4 - 10/10/23
+## v0.9.4 - 10/10/2023
 
 ### Fixed
 
 - Fixed a bug that didn't propagate tile padding through graft evaluation correctly.
 
-## v0.9.2 - 09/29/23
+## v0.9.2 - 09/29/2023
 
 ### Changed
 
@@ -81,7 +82,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Addressed a bug where masks are evaluated for 1 by 1 spatial extents.
 
-## v0.9.1 - 09/25/23
+## v0.9.1 - 09/25/2023
 
 ### Fixed
 
@@ -93,7 +94,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Back out some timing measurements that may be causing slowdowns when erroring
 
-## v0.9.0 - 09/20/23
+## v0.9.0 - 09/20/2023
 
 ### Fixed
 
@@ -111,7 +112,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Allowing relaxed scale specifications for `Mosaic.visualize`
 
-## v0.8.0 - 08/28/23
+## v0.8.0 - 08/28/2023
 
 ### Added
 
