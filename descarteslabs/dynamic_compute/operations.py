@@ -6,6 +6,7 @@ import io
 import json
 import os
 import pickle
+from copy import deepcopy
 from importlib.metadata import version
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 from urllib.parse import urlencode
@@ -879,3 +880,399 @@ def op_args(graft_op_node: list) -> list:
         raise ValueError("Cannot get op args of graft node that is not an operation")
 
     return graft_op_node[1:]
+
+
+# Support for legacy front-ends
+# can be removed when <1.0 is no longer supported
+
+
+def _adaptive_mask(mask, data):
+    if mask.ndim not in [2, 3, 4]:
+        raise Exception(
+            (
+                "Masks must be Mosaic of ImageStack objects. "
+                f"Shape of input mask was {mask.shape}."
+            )
+        )
+
+    if data.ndim not in [2, 3, 4]:
+        raise Exception(
+            (
+                "Data to be masked must be Mosaic of ImageStack objects. "
+                f"Shape of input data was {data.shape}."
+            )
+        )
+
+    if (
+        mask.ndim == 2
+    ):  # this is a Mosiac with one band, that for whatever reason didn't come back as (1,row,cols)
+
+        masked_data = np.ma.masked_array(data, False)
+        index = tuple(
+            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
+        )
+        masked_data.mask |= mask[index]
+        return masked_data
+
+    if (
+        mask.ndim == 3
+    ):  # the mask is a Mosaic with multiple bands or a single band in an ImageStack
+        if (
+            data.ndim == 4
+        ):  # data is an ImageStack, need to have the same number of bands
+            if mask.shape[0] != data.shape[1] and mask.shape[0] != 1:
+                raise Exception(
+                    (
+                        "Masks must be single-band or have the same number of bands as the ImageStack. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
+                )
+        else:  # data is a Mosaic, need to have the same number of bands
+            if mask.shape[0] != data.shape[0] and mask.shape[0] != 1:
+                raise Exception(
+                    (
+                        "Masks must be single-band or have the same number of bands as the Mosaic. "
+                        f"Mask shape: {mask.shape}. Mosaic shape: {data.shape}."
+                    )
+                )
+
+        if mask.shape[0] == 1:
+            mask = np.squeeze(mask, axis=0)
+
+        masked_data = np.ma.masked_array(data, False)
+        index = tuple(
+            [np.newaxis for _ in range(len(data.shape) - len(mask.shape))] + [...]
+        )
+        masked_data.mask |= mask[index]
+        return masked_data
+
+    if mask.ndim == 4:  # the mask is an ImageStack
+        if (
+            data.ndim == 3
+        ):  # the data is a Mosaic with multiple bands or a single band in an ImageStack
+            raise Exception(
+                "Cannot mask Mosaic with ImageStack, unless the ImageStack has been reduced over the 'images' axis."
+            )
+        else:
+            if mask.shape[0] != data.shape[0]:
+                raise Exception(
+                    (
+                        "ImageStack masks have same number of scenes as the ImageStack you are trying to mask. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
+                )
+            elif mask.shape[1] != data.shape[1] and mask.shape[1] != 1:
+                raise Exception(
+                    (
+                        "ImageStack masks must be singular band or have the same number of "
+                        "bands as the ImageStack you are trying to mask. "
+                        f"Mask shape: {mask.shape}. ImageStack shape: {data.shape}."
+                    )
+                )
+
+    if isinstance(data, np.ma.MaskedArray):
+        masked_data = data
+    else:
+        masked_data = np.ma.masked_array(data, False)
+    if mask.shape[1] == 1:
+
+        # The computational intent of the following three lines of code is
+        #
+        # for i in range(masked_data.shape[1]):
+        #     masked_data.mask[:, i, :, :] = mask[:, 0, :, :]
+        #
+        # The conventional wisdom is that iteration is bad. However,
+        # I can only seem to get the desired broadcast behavior by swapping
+        # the fist two axes, doing the assignment, and then swapping back.
+
+        temp = np.moveaxis(masked_data, (0, 1, 2, 3), (1, 0, 2, 3))
+        temp.mask |= np.moveaxis(mask, (0, 1, 2, 3), (1, 0, 2, 3))
+        masked_data = np.moveaxis(temp, (0, 1, 2, 3), (1, 0, 2, 3))
+    else:
+        masked_data.mask |= mask
+
+    return masked_data
+
+
+def adaptive_mask(mask, data):
+    """
+    This function creates a mask for data assuming that the mask may
+    need to be extended to cover more dimensions.  If `data` has more
+    leading dimensions than `mask`, `mask` is extended along those leading
+    dimensions.
+    If `data` has more dimensions in the second position than `mask`, `mask`
+    is extended along that dimensions.
+    A few sample use cases follow: Assume we have raster data whose shape is
+    (bands, pixel-rows, pixel-cols). Assume was also have a per-pixel mask
+    whose shape is just (pixel-rows, pixel-cols). This function will extend the
+    mask to be (bands, pixel-rows, pixel-cols) to match the shape of the data.
+    Similarly, if the data is (scenes, bands, pixel-rows, pixel-cols), we extend
+    the mask to (scenes, bands, pixel-rows, pixel-cols) to match. If instead, the
+    mask is (scenes, bands=1, pixel-rows, pixel-cols) while the data is
+    (scenes, bands=3, pixel-rows, pixel-cols), we will extend to match both
+    cases.
+    Note if the trailing dimensions of `data` don't match the dimensions of `mask`,
+    this will fail -- we  don't check that present dimensions agree, we only add
+    missing dimensions.
+    Parmaters
+    ---------
+    mask: numpy.ndarray
+        Mask to apply
+    data: numpy.ndarray
+        Data to mask
+    Returns
+    -------
+    md : numpy.ma.core.MaskedArray
+        Masked array.
+    """
+    try:
+        return _adaptive_mask(mask, data)
+    except Exception as e:
+        if str(e).find("'bitwise_or' not supported for the input types") >= 0:
+            raise Exception(
+                f"Encountered an error applying a mask of type {mask.dtype} to an array of type {data.dtype}"
+            )
+        else:
+            raise e
+
+
+def _default_property_propagation(
+    props0: Union[List[dict], dict],
+    props1: Union[List[dict], dict],
+    band_op: Optional[str] = "same",
+    op_name: Optional[str] = None,
+) -> Union[List[Dict], Dict]:
+    """This function provides a default implementation of property propagation.
+
+    Dynamic Compute tracks data and metadata through steps of an
+    evaluation.  Binary operations take two pieces of data and two
+    pieces of metadata (often called properties) to generate a new
+    piece of data and a new piece of metadata. Dynamic Compute creates
+    binary operations with `_apply_binary`.
+
+    `_apply_binary` requires two operations, first, a function that
+    combines the two pieces of input data, second a function that
+    combines the two pieces of metadata to generate the metadata for
+    the result of the binary operation.
+
+    This function provides a default implementation of the second
+    function required by `_apply_binary`. It may not be appropriate in
+    all cases.
+
+    Parameters
+    ----------
+    props0: Union[List[dict], dict]
+        Properties (metadata for the first operand)
+    props1: Union[List[dict], dict]
+        Properties (metadata for the second operand)
+    band_op: Optional[str] = "same"
+        Either "same" meaning that bands are to be operated on together or
+        "concat" meaning that input bands will be concatenated together.
+    op_name: Optional[str] = None
+        The name of the operation. This is used to create band names for the
+        result
+
+    Returns
+    -------
+    new_props: Union[List[dict], dict]
+        Properties for the result of the binary operation
+    """
+    assert band_op in ["same", "concat"], f"Unrecognized band_op {band_op}"
+
+    pid0, bands0, pad0 = _get_pid_bands_pad(props0)
+    pid1, bands1, pad1 = _get_pid_bands_pad(props1)
+
+    if pad0 and pad1 and pad0 != pad1:
+        raise Exception(f"Operands have different padding {pad0} {pad1}")
+
+    new_pad = None
+    if pad0:
+        new_pad = pad0
+    elif pad1:
+        new_pad = pad1
+    else:
+        new_pad = pad0
+
+    new_bands = None
+
+    if band_op == "same":
+        # We aren't concatenating bands.
+
+        if bands0 and bands1:
+            # We have band information.
+
+            if len(bands0) > 1 and len(bands1) > 1:
+                # If either sets of bands has length 1, then we might be
+                # using one to mask the other.
+
+                if len(bands0) != len(bands1):
+                    # We aren't masking and so we need the same number of bands.
+                    raise Exception(
+                        f"Operands have different numbers of bands {len(bands0)} {len(bands1)}"
+                    )
+
+                elif bands0 == bands1:
+                    new_bands = bands0
+                else:
+                    new_bands = [
+                        f"{band0}_{op_name}_{band1}"
+                        for band0, band1 in zip(bands0, bands1)
+                    ]
+
+            else:
+                if len(bands0) == 1:
+                    new_bands = bands1
+                else:
+                    new_bands = bands0
+
+        elif bands0:
+            new_bands = bands0
+
+        elif bands1:
+            new_bands = bands1
+    else:
+        # We are concatenating bands
+
+        if not bands0 or not bands1:
+            raise Exception("Cannot concat bands when bands for one operand is missing")
+        else:
+            new_bands = bands0 + bands1
+
+    new_pid = None
+    other_pid = None
+    if pid0 and not pid1:
+        new_pid = pid0
+    elif pid1 and not pid0:
+        new_pid = pid1
+    elif pid0 and pid1 and pid0 != pid1:
+        new_pid = pid0
+        other_pid = pid1
+
+    if isinstance(props0, dict) and isinstance(props1, list):
+        props0, props1 = props1, props0
+
+    props0 = deepcopy(props0)
+
+    if isinstance(props0, dict):
+
+        props0.pop("shape", None)
+
+        props0.pop("pad", None)
+        if new_pad:
+            props0["pad"] = new_pad
+        else:
+            props0["pad"] = 0
+
+        props0.pop("bands", None)
+        if new_bands:
+            props0["bands"] = new_bands
+
+        props0.pop("product_id", None)
+        if new_pid:
+            props0["product_id"] = new_pid
+
+        other_product_ids = props0.get("other_product_ids", [])
+        if other_pid:
+            other_product_ids.append(other_pid)
+            props0["other_product_ids"] = other_product_ids
+
+        return props0
+
+    elif isinstance(props0, list):
+
+        for prop in props0:
+
+            prop.pop("shape", None)
+
+            prop.pop("pad", None)
+            if new_pad:
+                prop["pad"] = new_pad
+            else:
+                prop["pad"] = 0
+
+            prop.pop("bands", None)
+            if new_bands:
+                prop["bands"] = new_bands
+
+            prop.pop("product_id", None)
+            if new_pid:
+                prop["product_id"] = new_pid
+
+            prop.pop("other_product_id", None)
+            if other_pid:
+                prop["other_product_id"] = other_pid
+
+        return props0
+
+    return {}
+
+
+def _nan_mask(op: Union[np.ndarray, np.ma.MaskedArray]) -> np.ndarray:
+    """
+    Create an array where masked values are nans and non-masked values are zero
+    Parameters
+    ----------
+    op: Union[np.ndarray, np.ma.MaskedArray]
+        Operand for which we want the nan-mask
+    Returns
+    -------
+    nan_mask: np.ndarray
+        Nan-mask for operand
+    """
+    mask = np.zeros(op.shape)
+
+    if not isinstance(op, np.ma.MaskedArray):
+        return mask
+
+    mask[op.mask] = np.nan
+
+    return mask
+
+
+def masked_einsum(
+    signature: str,
+    op1: Union[np.ndarray, np.ma.MaskedArray],
+    op2: Union[np.ndarray, np.ma.MaskedArray],
+) -> Union[np.ndarray, np.ma.MaskedArray]:
+    """
+    Compute an einsum that respects masks.
+    Parameters
+    ----------
+    signature: str
+        `np.einsum` signature
+    op1: Union[np.ndarray, np.ma.MaskedArray]
+        First operand
+    op2: Union[np.ndarray, np.ma.MaskedArray]
+        Second operand
+    Returns
+    -------
+    product: Union[np.ndarray, np.ma.MaskedArray]
+        Masked result for einsum
+    """
+    unmasked_result = np.einsum(signature, op1, op2)
+
+    if not isinstance(op1, np.ma.MaskedArray) and not isinstance(
+        op2, np.ma.MaskedArray
+    ):
+        return unmasked_result
+
+    # Implementation idea: einsum is akin to matrix multiplicataion in that
+    # it uses multiplication and addition to get a result. Masks are booleans
+    # and for booleans multiplication is "and" and addition is "or", applying
+    # einsum directly to the masks may not give the desired result.
+    #
+    # For each operatnd, we create a new mask where False (not masked) is 0 and
+    # True (masked) is nan, and then take advantage that nans propagate as desired,
+    # e.g.
+    #
+    #     nan + anything == anything + nan == nan
+    #     nan * anything == anything * nan == nan
+    #
+    # We apply einsum on the two nan-masks, then mask the result for any nan result
+
+    nan_mask1 = _nan_mask(op1)
+    nan_mask2 = _nan_mask(op2)
+
+    mask = np.isnan(np.einsum(signature, nan_mask1, nan_mask2))
+
+    return np.ma.masked_array(unmasked_result, mask)

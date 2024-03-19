@@ -483,3 +483,50 @@ class Mosaic(
         """
 
         return cls(**MosaicSerializationModel.from_json(data).dict())
+
+
+# Support for legacy front-ends
+# can be removed when <1.0 is no longer supported
+
+
+def property_propagation_for_dot(
+    properties_a: dict, properties_b: dict, **kwargs
+) -> dict:
+    """
+    Provide logic for property propagation used in the `dot` operation
+    Parameters
+    ----------
+    properties_a: dict
+        Properties for the first argument
+    properties_b: dict
+        Properties for the second argument
+    Returns
+    -------
+    new_properties: dict
+        Properties for the result of the dot operation.
+    """
+    new_properties = {}
+
+    # Note that if a or b is a matrix it will have no padding.
+    pad_a = properties_a.get("pad", None)
+    pad_b = properties_b.get("pad", None)
+
+    if pad_a and pad_b and pad_a != pad_b:
+        raise Exception("Cannot dot objects with different padding")
+
+    if pad_a:
+        new_properties["pad"] = pad_a
+    elif pad_b:
+        new_properties["pad"] = pad_b
+
+    pid_a = properties_a.get("product_id", None)
+    pid_b = properties_b.get("product_id", None)
+
+    if pid_a:
+        new_properties["product_id"] = pid_a
+        if pid_b and pid_a != pid_b:
+            new_properties["other_product_id"] = pid_b
+    elif pid_b:
+        new_properties["product_id"] = pid_b
+
+    return new_properties
