@@ -24,7 +24,7 @@ def type_resolver(t: Type) -> Type:
     return t
 
 
-# Pairs of operand types that can be handled with multiplication
+# Pairs of operand types that can be handled with multiplication.
 simple_supported_type_pairs = {
     (Mosaic, Number),
     (Number, Mosaic),
@@ -45,16 +45,16 @@ complex_supported_type_pairs = {
 
 
 def _return_type(
-    a: np.ndarray | Mosaic | ImageStack, b: np.ndarray | Mosaic | ImageStack
+    a: Union[np.ndarray, Mosaic, ImageStack], b: Union[np.ndarray, Mosaic, ImageStack]
 ) -> Type:
     """
     Compute the return type based on the input arguments
 
     Parameters
     ----------
-    a: np.ndarray | Mosaic | ImageStack
+    a: Union[np.ndarray, Mosaic, ImageStack]
         First operand
-    b: np.ndarray | Mosaic | ImageStack
+    b: Union[np.ndarray, Mosaic, ImageStack]
         Second operand
 
     Returns
