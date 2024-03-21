@@ -81,7 +81,7 @@ import copy
 import itertools
 import json
 from io import BytesIO
-from typing import Dict, Hashable, List
+from typing import Any, Dict, List
 
 import numpy as np
 import six
@@ -262,7 +262,7 @@ def compress_graft(graft: Dict) -> Dict:
     return compress_graft(new_graft)
 
 
-def splice(graft1: dict, splice_value: Hashable, graft2: dict) -> dict:
+def splice(graft1: dict, splice_value: Any, graft2: dict) -> dict:
     """
     Splice two grafts together by replacing a particular value in graft1 with
     the returned content of graft2.
@@ -340,9 +340,14 @@ def splice(graft1: dict, splice_value: Hashable, graft2: dict) -> dict:
                             object_as_dict[subkey], object_as_dict[subkey]
                         )
 
+        if key == "returns":
+            spliced_graft["returns"] = key_remap.get(
+                spliced_graft["returns"], spliced_graft["returns"]
+            )
+
     spliced_graft.update(graft2)
 
-    return spliced_graft
+    return compress_graft(spliced_graft)
 
 
 def op_args(op_list: List) -> List:
