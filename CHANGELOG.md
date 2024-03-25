@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Matrixed unit tests over python versions 3.8, 3.9 and 3.10
 
+### Changed
+
+- Bumped cloudpickle from 1.6.0 to 3.0.9
+
 ### Fixed
 
 - Unit tests pass for 3.8, 3.9 and 3.10

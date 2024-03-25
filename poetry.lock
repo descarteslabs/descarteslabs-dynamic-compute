@@ -375,13 +375,13 @@ test = ["pytest-cov"]
 
 [[package]]
 name = "cloudpickle"
-version = "1.6.0"
+version = "2.1.0"
 description = "Extended pickling support for Python objects"
 optional = false
-python-versions = ">=3.5"
+python-versions = ">=3.6"
 files = [
-    {file = "cloudpickle-1.6.0-py3-none-any.whl", hash = "sha256:3a32d0eb0bc6f4d0c57fbc4f3e3780f7a81e6fee0fa935072884d58ae8e1cc7c"},
-    {file = "cloudpickle-1.6.0.tar.gz", hash = "sha256:9bc994f9e9447593bd0a45371f0e7ac7333710fcf64a4eb9834bf149f4ef2f32"},
+    {file = "cloudpickle-2.1.0-py3-none-any.whl", hash = "sha256:b5c434f75c34624eedad3a14f2be5ac3b5384774d5b0e3caf905c21479e6c4b1"},
+    {file = "cloudpickle-2.1.0.tar.gz", hash = "sha256:bb233e876a58491d9590a676f93c7a5473a08f747d5ab9df7f9ce564b3e7938e"},
 ]
 
 [[package]]
@@ -2068,4 +2068,4 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.8, <3.12"
-content-hash = "c7c82b9a5e8ab44b9c3316a2c734c461161da91f164f969a2bb33e754bda7fed"
+content-hash = "145c21607d9dfe07b73977caaac4dc4d20fee60423e276a1e9c87ef2ad265be5"
