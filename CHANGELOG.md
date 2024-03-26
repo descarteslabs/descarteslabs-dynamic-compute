@@ -10,7 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Bumped cloudpickle from 1.6.0 to 3.0.9
+- Bumped cloudpickle from 1.6.0 to 3.0.9 for python 3.11 and later
 
 ### Fixed
 
