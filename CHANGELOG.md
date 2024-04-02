@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Unit tests pass for 3.8, 3.9 and 3.10
 - Fixed a bug in graft splicing logic
+- Fixed a bug when inferring the shape of an empty ImageStack
 
 ## v1.1.0 - 03/18/2024
 
