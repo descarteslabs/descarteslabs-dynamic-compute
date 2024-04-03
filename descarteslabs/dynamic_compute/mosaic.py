@@ -22,6 +22,10 @@ from .compute_map import (
     SignedMixin,
     SubMixin,
     TrueDivMixin,
+    arctan,
+    arctan2,
+    pi,
+    sqrt,
 )
 from .datetime_utils import normalize_datetime_or_none
 from .dl_utils import get_product_or_fail
@@ -30,8 +34,12 @@ from .operations import (
     _band_op,
     _clip_data,
     _mask_op,
+    _resolution_graft_x,
+    _resolution_graft_y,
     create_mosaic,
     format_bands,
+    gradient_x,
+    gradient_y,
     is_op,
     op_args,
     op_type,
@@ -466,6 +474,75 @@ class Mosaic(
             start_datetime=self.start_datetime,
             end_datetime=self.end_datetime,
         ).json()
+
+    def gradient_x(self, resolution: Optional[float] = None) -> Mosaic:
+        """
+        Compute the gradient in the x (E-W) direction
+
+        Returns
+        -------
+        Mosaic
+            Mosaic object with the E-W gradient
+        """
+
+        if resolution is None:
+            resolution = ComputeMap(_resolution_graft_x())
+
+        return Mosaic(gradient_x(dict(self))) / resolution
+
+    def gradient_y(self, resolution: Optional[float] = None) -> Mosaic:
+        """
+        Compute the gradient in the y (N-S) direction
+
+        Returns
+        -------
+        Mosaic
+            Mosaic object with the N-S gradient
+        """
+        if resolution is None:
+            resolution = ComputeMap(_resolution_graft_y())
+
+        return Mosaic(gradient_y(dict(self))) / resolution
+
+    def slope(
+        self, resolution_x: Optional[float] = None, resolution_y: Optional[float] = None
+    ) -> Mosaic:
+        """
+        Compute the slope of the mosaic
+
+        Returns
+        -------
+        Mosaic
+            Mosaic object with the slope
+        """
+
+        grad_y = self.gradient_y(resolution=resolution_y)
+        grad_x = self.gradient_x(resolution=resolution_x)
+        slope = sqrt(grad_x**2 + grad_y**2)
+
+        # convert to degrees from horizontal
+        slope = arctan(slope) * (180 / pi)
+
+        return slope
+
+    def aspect(
+        self, resolution_x: Optional[float] = None, resolution_y: Optional[float] = None
+    ) -> Mosaic:
+        """
+        Compute the aspect of the mosaic
+
+        Returns
+        -------
+        Mosaic
+            Mosaic object with the aspect
+        """
+
+        grad_y = self.gradient_y(resolution=resolution_y)
+        grad_x = self.gradient_x(resolution=resolution_x)
+
+        aspect = Mosaic(arctan2(grad_x, -grad_y)) * (180 / pi)
+
+        return aspect
 
     @classmethod
     def deserialize(cls, data: str) -> Mosaic:

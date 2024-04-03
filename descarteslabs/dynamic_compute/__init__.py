@@ -12,7 +12,8 @@ from .compute_map import (
     log,
     log10,
     pi,
-    resolution,
+    resolution_x,
+    resolution_y,
     sin,
     sqrt,
     tan,
@@ -22,12 +23,14 @@ from .groupby import ImageStackGroupBy
 from .image_stack import ImageStack
 from .interactive import map
 from .mosaic import Mosaic
+from .operations import gradient_x, gradient_y
 
 from . import catalog  # isort: skip
 
 __all__ = [
     "as_compute_map",
-    "resolution",
+    "resolution_x",
+    "resolution_y",
     "catalog",
     "share_catalog_blob",
     "list_catalog_blobs",
@@ -39,6 +42,8 @@ __all__ = [
     "sin",
     "cos",
     "tan",
+    "gradient_x",
+    "gradient_y",
     "arccos",
     "arcsin",
     "arctan",

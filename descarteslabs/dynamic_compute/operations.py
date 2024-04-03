@@ -381,14 +381,24 @@ def get_padding(graft):
     return graft[pad_key]
 
 
-def _resolution_graft() -> dict:
+def _resolution_graft_x() -> dict:
     """
     Returns
     -------
-    resolution_graft: dict
-        Graft that evaluates to resolution.
+    resolution_graft_x: dict
+        Graft that evaluates to resolution_x.
     """
-    return graft_client.apply_graft("resolution")
+    return graft_client.apply_graft("resolution_x")
+
+
+def _resolution_graft_y() -> dict:
+    """
+    Returns
+    -------
+    resolution_graft_y: dict
+        Graft that evaluates to resolution_y.
+    """
+    return graft_client.apply_graft("resolution_y")
 
 
 def _math_op(main_obj, operation, other_obj=None, **kwargs):
@@ -645,6 +655,16 @@ def filter_data(stack_graft: Dict, encoded_filter_func: str) -> Dict:
         for which the filter function evaluates to true.
     """
     return graft_client.apply_graft("filter_data", stack_graft, encoded_filter_func)
+
+
+def gradient_x(graft: Dict):
+
+    return graft_client.apply_graft("math", "gradient_x", graft, None)
+
+
+def gradient_y(graft: Dict):
+
+    return graft_client.apply_graft("math", "gradient_y", graft, None)
 
 
 def groupby(scenes_graft: Dict, encoded_key_func: str):

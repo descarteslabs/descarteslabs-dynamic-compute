@@ -16,7 +16,13 @@ import numpy as np
 from .graft.client import client as graft_client
 from .graft.interpreter.interpreter import interpret
 from .graft.syntax import syntax as graft_syntax
-from .operations import _func_op, _math_op, _resolution_graft, compute_aoi
+from .operations import (
+    _func_op,
+    _math_op,
+    _resolution_graft_x,
+    _resolution_graft_y,
+    compute_aoi,
+)
 
 
 class DotDict(dict):
@@ -102,7 +108,11 @@ def clip_data(*args, **kwargs):
     return None
 
 
-def graft_resolution(*args, **kwargs):
+def graft_resolution_x(*args, **kwargs):
+    return None
+
+
+def graft_resolution_y(*args, **kwargs):
     return None
 
 
@@ -196,7 +206,8 @@ class ComputeMap(dict, ABC):
                     ("math", math_op),
                     ("reduction", reduction_op),
                     ("clip", clip_data),
-                    ("resolution", graft_resolution),
+                    ("resolution_y", graft_resolution_y),
+                    ("resolution_x", graft_resolution_x),
                     ("band_op", band_op),
                     ("index", index),
                     ("length", length),
@@ -339,16 +350,28 @@ def as_compute_map(a: Union[Number, Dict, ComputeMap, np.ndarray, List]) -> Comp
     return a
 
 
-def resolution():
+def resolution_x():
     """
-    Generate ComputeMap representation of resolution.
+    Generate ComputeMap representation of resolution_x.
 
     Returns
     -------
     Resolution: ComputeMap
-        A dynamic-compute object representation of resolution.
+        A dynamic-compute object representation of resolution east-west
     """
-    return as_compute_map(_resolution_graft())
+    return as_compute_map(_resolution_graft_x())
+
+
+def resolution_y():
+    """
+    Generate ComputeMap representation of resolution_y.
+
+    Returns
+    -------
+    Resolution: ComputeMap
+        A dynamic-compute object representation of resolution n-s.
+    """
+    return as_compute_map(_resolution_graft_y())
 
 
 def type_max(
@@ -714,6 +737,9 @@ def _functional_op(f):
 #
 # functional operations
 #
+def arctan2(x, y):
+    return _math_op(x, "arctan2", y)
+
 
 sqrt = _functional_op("sqrt")
 
