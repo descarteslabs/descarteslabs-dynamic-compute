@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Bumped cloudpickle from 1.6.0 to 3.0.9 for python 3.11 and later
+- Use user's SHA1 hash if org is missing
 
 ### Fixed
 
