@@ -4,18 +4,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
-### Added
-
-- Matrixed unit tests over python versions 3.8, 3.9 and 3.10
+## v1.1.1 - 04/12/2024
 
 ### Changed
 
 - Bumped cloudpickle from 1.6.0 to 3.0.9 for python 3.11 and later
-- Use user's SHA1 hash if org is missing
 
 ### Fixed
 
-- Unit tests pass for 3.8, 3.9 and 3.10
 - Fixed a bug in graft splicing logic
 - Fixed a bug when inferring the shape of an empty ImageStack
 
