@@ -4,7 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- Update `cloudpickle` for all but python 3.8
+
 ## v1.1.3 - 04/15/2024
+
+### Changed
 
 - Backend changes to support performance during non-peak hours.
 

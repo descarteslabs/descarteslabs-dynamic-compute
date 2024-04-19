@@ -19,8 +19,8 @@ geojson = ">=2.5.0"
 numpy = "<=1.24.2"
 descarteslabs = ">=2.0.3,<4"
 cloudpickle = [
-    {version = "1.6.0", python = ">=3.8,<3.11"},
-    {version = "3.0.0", python = ">=3.11"}
+    {version = "1.6.0", python = ">=3.8,<3.9"},
+    {version = "3.0.0", python = ">=3.9"}
 ]
 certifi = ">=2023.7.22"
 
