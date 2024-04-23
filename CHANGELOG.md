@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Update `cloudpickle` for all but python 3.8
 
+### Fixed
+
+- Fixed a bug where reductions over the `bands` axis in ImageStacks could not be visualized
+
 ## v1.1.3 - 04/15/2024
 
 ### Changed
