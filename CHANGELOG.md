@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.1.4 - 04/25/2024
+
 ### Changed
 
 - Update `cloudpickle` for all but python 3.8
