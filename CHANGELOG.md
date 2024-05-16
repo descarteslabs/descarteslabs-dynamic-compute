@@ -4,6 +4,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.1.5 - 05/16/2024
+
+### Changed
+
+- Ensure data is float32 throughout the processing pipeline
+- Use private VPCs
+
 ## v1.1.4 - 04/25/2024
 
 ### Changed
