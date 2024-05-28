@@ -1,6 +1,7 @@
 """Holds onto list of available colormaps"""
 
-COLORMAPS = [
+# these are not reverse, adding any reverse here will not work
+_COLORMAPS = [
     "viridis",
     "plasma",
     "inferno",
@@ -83,3 +84,7 @@ COLORMAPS = [
     "gist_ncar",
     "turbo",
 ]
+
+_COLORMAPS_R = [cmap + "_r" for cmap in _COLORMAPS]
+
+COLORMAPS = sorted(_COLORMAPS + _COLORMAPS_R)
