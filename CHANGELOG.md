@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.1.6 - 06/06/2024
+
 ### Added
 
 - Added reverse colormaps for all available color maps
