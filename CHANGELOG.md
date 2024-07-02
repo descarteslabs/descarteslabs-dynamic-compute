@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 
 - Allow no checkboard parameter to be passed in when calling the `DynamicComputeLayer` method directly
+- Fixed a bug where reductions over empty image stacks used to result in error tiles, and now return the empty image stack as expected
 
 ## v1.1.6 - 06/06/2024
 
