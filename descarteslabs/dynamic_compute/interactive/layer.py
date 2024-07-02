@@ -133,7 +133,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     session_id = traitlets.Unicode(read_only=True)
     log_level = traitlets.Int(logging.DEBUG)
 
-    checkerboard = traitlets.Bool(True)
+    checkerboard = traitlets.Bool(True, allow_none=True)
     reduction = traitlets.Unicode("mosaic")
     colormap = traitlets.Unicode(None, allow_none=True)
 
