@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 
-- Use `Descartes Labs Build` instead of `DescartesBuild` to push code to the public descarteslabs-dynamic-compute repository
+- Use `Descartes Labs Build` instead of `DescartesBuild` to push code to the descarteslabs-dynamic-compute repository
 
 ## v1.1.6 - 06/06/2024
 
