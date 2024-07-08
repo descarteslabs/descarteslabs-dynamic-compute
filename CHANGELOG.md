@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- Use `Descartes Labs Build` bot instead of `DescartesBuild` to push client code to the public repo
+
 ### Fixed
 
 - Allow no checkboard parameter to be passed in when calling the `DynamicComputeLayer` method directly
