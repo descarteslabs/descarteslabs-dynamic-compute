@@ -26,9 +26,6 @@ files = [
     {file = "annotated_types-0.6.0.tar.gz", hash = "sha256:563339e807e53ffd9c267e99fc6d9ea23eb8443c08f112651963e24e22f84a5d"},
 ]
 
-[package.dependencies]
-typing-extensions = {version = ">=4.0.0", markers = "python_version < \"3.9\""}
-
 [[package]]
 name = "appnope"
 version = "0.1.3"
@@ -375,17 +372,6 @@ test = ["pytest-cov"]
 
 [[package]]
 name = "cloudpickle"
-version = "1.6.0"
-description = "Extended pickling support for Python objects"
-optional = false
-python-versions = ">=3.5"
-files = [
-    {file = "cloudpickle-1.6.0-py3-none-any.whl", hash = "sha256:3a32d0eb0bc6f4d0c57fbc4f3e3780f7a81e6fee0fa935072884d58ae8e1cc7c"},
-    {file = "cloudpickle-1.6.0.tar.gz", hash = "sha256:9bc994f9e9447593bd0a45371f0e7ac7333710fcf64a4eb9834bf149f4ef2f32"},
-]
-
-[[package]]
-name = "cloudpickle"
 version = "3.0.0"
 description = "Pickler class to extend the standard pickle.Pickler functionality"
 optional = false
@@ -486,8 +472,8 @@ imagecodecs = ">=2021.5.20"
 lazy-object-proxy = ">=1.7.1"
 mercantile = ">=1.1.3"
 numpy = [
-    {version = ">=1.21.6", markers = "python_version >= \"3.8\" and python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.21.6", markers = "python_version >= \"3.8\" and python_version < \"3.11\""},
 ]
 Pillow = ">=9.2.0"
 pyarrow = ">=13.0.0"
@@ -497,10 +483,7 @@ requests = ">=2.28.1,<3"
 setuptools = ">=65.6.3"
 shapely = ">=2.0.0"
 strenum = ">=0.4.8"
-tifffile = [
-    {version = "2023.4.12", markers = "python_version == \"3.8\""},
-    {version = ">=2023.9.26", markers = "python_version >= \"3.9\""},
-]
+tifffile = {version = ">=2023.9.26", markers = "python_version >= \"3.9\""}
 tqdm = ">=4.32.1"
 urllib3 = ">=1.26.18"
 
@@ -1146,8 +1129,8 @@ files = [
 
 [package.dependencies]
 numpy = [
-    {version = ">=1.20.3", markers = "python_version < \"3.10\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
+    {version = ">=1.20.3", markers = "python_version < \"3.10\""},
     {version = ">=1.21.0", markers = "python_version >= \"3.10\" and python_version < \"3.11\""},
 ]
 python-dateutil = ">=2.8.2"
@@ -1875,23 +1858,6 @@ test = ["pylint", "pytest", "pytest-black", "pytest-cov", "pytest-pylint"]
 
 [[package]]
 name = "tifffile"
-version = "2023.4.12"
-description = "Read and write TIFF files"
-optional = false
-python-versions = ">=3.8"
-files = [
-    {file = "tifffile-2023.4.12-py3-none-any.whl", hash = "sha256:3161954746fe32c4f4244d0fb2eb0a272f3a3760b78882a42faa83ac5e6e0b74"},
-    {file = "tifffile-2023.4.12.tar.gz", hash = "sha256:2fa99f9890caab919d932a0acaa9d0f5843dc2ef3594e212963932e20713badd"},
-]
-
-[package.dependencies]
-numpy = "*"
-
-[package.extras]
-all = ["defusedxml", "fsspec", "imagecodecs (>=2023.1.23)", "lxml", "matplotlib", "zarr"]
-
-[[package]]
-name = "tifffile"
 version = "2024.1.30"
 description = "Read and write TIFF files"
 optional = false
@@ -2078,5 +2044,5 @@ testing = ["big-O", "jaraco.functools", "jaraco.itertools", "more-itertools", "p
 
 [metadata]
 lock-version = "2.0"
-python-versions = ">=3.8, <3.12"
-content-hash = "445bcc06356e85ceefd5c8688ced1cc6dc1120853e7e7459bf69cd3517b5742c"
+python-versions = ">=3.9, <3.12"
+content-hash = "cfd1fa6a1a402d1e50c65548b426f12a03ecdbabf00d8a672e26ecefe62847a9"

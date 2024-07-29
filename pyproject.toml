@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8, <3.12"
+python = ">=3.9, <3.12"
 ipyleaflet = ">=0.15.0"
 shapely = ">2,<3"
 utm = "^0.7.0"

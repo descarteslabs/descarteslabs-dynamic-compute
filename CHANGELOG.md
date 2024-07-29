@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 
 - Use `DescartesLabsBuild` user instead of `DescartesBuild` to add changes to the public repository
+- Remove support for Python 3.8
 
 ## v1.1.6 - 06/06/2024
 
