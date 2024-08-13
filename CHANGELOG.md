@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.2.0 - 08/13/2024
+
 ### Fixed
 
 - Allow no checkboard parameter to be passed in when calling the `DynamicComputeLayer` method directly
