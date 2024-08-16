@@ -48,7 +48,7 @@ class ImageStackGroups:
             self.computed_AOI = aoi
 
         for group_name, id_list in self.computed_value:
-            compute_map = self.image_stack.filter(lambda i: i.id in id_list)
+            compute_map = self.image_stack.filter_by_id(id_list)
             if (
                 self.reducer
                 and isinstance(self.reducer.func, str)

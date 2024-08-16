@@ -72,10 +72,6 @@ def select_scenes(*args, **kwargs):
     return None
 
 
-def filter_scenes(*args, **kwargs):
-    return None
-
-
 def stack_scenes(*args, **kwargs):
     return None
 
@@ -197,7 +193,6 @@ class ComputeMap(dict, ABC):
                     ("code", code),
                     ("mosaic", mosaic),
                     ("select_scenes", select_scenes),
-                    ("filter_scenes", filter_scenes),
                     ("stack_scenes", stack_scenes),
                     ("array", array),
                     ("groupby", groupby),

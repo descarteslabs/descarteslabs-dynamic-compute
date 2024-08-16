@@ -5,7 +5,7 @@ import datetime
 import json
 from copy import deepcopy
 from numbers import Number
-from typing import Callable, Dict, Hashable, List, Optional, Tuple, Union
+from typing import Dict, Hashable, List, Optional, Tuple, Union
 
 import descarteslabs as dl
 
@@ -32,7 +32,7 @@ from .operations import (
     _index,
     _length,
     _mask_op,
-    encode_function,
+    filter_by_id,
     filter_data,
     format_bands,
     is_op,
@@ -54,7 +54,7 @@ def _optimize_image_stack_graft(
 ) -> Optional[ImageStack]:
     """
     Given a graft for an image stack, determine if there is a more efficient ImageStack
-    that evaluates to the samre output.
+    that evaluates to the same output.
 
     A common use case is
     >>> image_stack = ImageStack.from_product_bands(<product_id>, <all bands>)
@@ -120,8 +120,8 @@ def _optimize_image_stack_graft(
             break
 
         # If we've reached this line of code, we've encountered
-        # a key that doesn't correspond to stack_scenes, filter_scenes
-        # of select_scenes, so this is not a "simple" image stack.
+        # a key that doesn't correspond to stack_scenes
+        # or select_scenes, so this is not a "simple" image stack.
         return None
 
     # Make sure the new bands are a subset of the orignal bands.
@@ -284,15 +284,30 @@ class ImageStack(
             end_datetime,
         )
 
-    def filter(self, f: Callable[[dl.catalog.Image], bool]) -> ImageStack:
+    def filter_by_id(self, id_list: List[str]) -> ImageStack:
         """
         Filter an image stack to based on image properties.
 
         Parameters
         ----------
-        f: Callable[[dl.catalog.Image], bool]
-            Filter function. This function must take a dl.catalog.Image object and return
-            a bool indicating that the image should be retained (True) or excluded (False)
+        id_list: List[str]
+            List of image ids.
+
+        Returns
+        -------
+        ImageStack
+            New ImageStack object.
+        """
+        return ImageStack(filter_by_id(dict(self), json.dumps(list(id_list))))
+
+    def filter(self, pred: dl.catalog.properties.OpExpression) -> ImageStack:
+        """
+        Filter an image stack to based on image properties.
+
+        Parameters
+        ----------
+        pred: dl.catalog.properties.OpExpression
+            Predicate for image selection
 
         Returns
         -------
@@ -300,7 +315,18 @@ class ImageStack(
             New ImageStack object.
         """
 
-        return ImageStack(filter_data(dict(self), encode_function(f)))
+        try:
+            return ImageStack(
+                filter_data(
+                    dict(self), json.dumps(pred.jsonapi_serialize(dl.catalog.Image))
+                )
+            )
+        except AttributeError:
+            raise Exception(
+                "ImageStack filtering follows the pattern for ImageSearch filtering defined here:\n"
+                + "https://docs.descarteslabs.com/descarteslabs/catalog/docs/image.html"
+                + "#descarteslabs.catalog.ImageCollection.filter"
+            )
 
     def get(self, idx: int) -> Mosaic:
         """
