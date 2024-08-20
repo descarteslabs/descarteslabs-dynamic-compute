@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Changed
+
+- Filtering of `ImageStack`s now directly uses `descarteslabs.catalog.properties`
+
 ## v1.2.0 - 08/13/2024
 
 ### Fixed
