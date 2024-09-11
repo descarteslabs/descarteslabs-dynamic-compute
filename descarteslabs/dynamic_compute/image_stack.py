@@ -88,6 +88,8 @@ def _optimize_image_stack_graft(
 
     filter_functions = []
 
+    options = None
+
     while True:
 
         if not is_op(graft[key]):
@@ -96,6 +98,14 @@ def _optimize_image_stack_graft(
         args = op_args(graft[key])
 
         if op_type(graft[key]) in ["stack_scenes"]:
+            # If the graft element is stack_scenes, args[2] is the
+            # dictionary of kwargs to be passed to the stack_scenes op
+            # in the server. These are the options we want to preserve.
+            if options is None:
+                options = deepcopy(args[2])
+            else:
+                options.update(deepcopy(args[2]))
+
             # The first argument to the op is the source for the op.
             key = args[0]
             continue
@@ -113,7 +123,15 @@ def _optimize_image_stack_graft(
             product_id = graft[product_id_key]
             bands_key = args[1]
             original_bands = format_bands(graft[bands_key])
-            options = deepcopy(args[2])
+
+            # As with stack_scenes, if the graft element is
+            # select_scenes, args[2] is the dictionary of kwargs
+            # passed to the stack_scenes op in the server. Again,
+            # these are the options we want to preserve
+            if options is None:
+                options = deepcopy(args[2])
+            else:
+                options.update(deepcopy(args[2]))
             for options_key in options:
                 options[options_key] = graft[options[options_key]]
             options.pop("cache_id", None)
@@ -198,6 +216,9 @@ class ImageStack(
         start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
         end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
         pad: Optional[int] = 0,
+        resampler: Optional[
+            dl.catalog.ResampleAlgorithm
+        ] = dl.catalog.ResampleAlgorithm.NEAR,
     ):
         """
         Initialize a new instance of ImageStack. Users should rely on
@@ -219,6 +240,8 @@ class ImageStack(
             Optional final cutoff for an ImageStack
         pad: Optional[int]
             Optional padding argument.
+        resampler: Optional[descarteslabs.catalog.ResampleAlgorithm]
+            Optional resampling algorithm to use, defaults to descartslabs.catalog.ResampleAlgorithm.NEAR
         """
 
         assert isinstance(pad, int)
@@ -236,6 +259,7 @@ class ImageStack(
             "start_datetime": self.start_datetime,
             "end_datetime": self.end_datetime,
             "pad": pad,
+            "resampler": resampler,
         }
 
     @classmethod
@@ -272,8 +296,15 @@ class ImageStack(
         end_datetime = normalize_datetime(end_datetime)
 
         formatted_bands = " ".join(format_bands(bands))
+        # Create a keywords arg dict without resampling
+        kwargs_no_resamp = deepcopy(kwargs)
+        kwargs_no_resamp.pop("resampler", None)
         scenes_graft = select_scenes(
-            product_id, formatted_bands, start_datetime, end_datetime, **kwargs
+            product_id,
+            formatted_bands,
+            start_datetime,
+            end_datetime,
+            **kwargs_no_resamp,
         )
 
         return cls(

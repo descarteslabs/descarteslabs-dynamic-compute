@@ -331,7 +331,9 @@ def create_mosaic(
     start_datetime: Optional[str] = None,
     end_datetime: Optional[str] = None,
     pad: int = 0,
-):
+    resampler: dl.catalog.ResampleAlgorithm = dl.catalog.ResampleAlgorithm.NEAR,
+) -> Dict:
+
     """Mosaic a product in the Descartes Labs catalog.
 
     Parameters
@@ -346,6 +348,9 @@ def create_mosaic(
         Datetime after which no scenes will be considered in the mosaicking operation.
     pad : int, default: 0
         Padding to apply to each tile, in pixels.
+    resampler : dl.catalog.ResampleAlgorithm
+        default: dl.catalog.ResampleAlgorithm.NEAR. Optional resampling algorithm to use when mosaicking.
+        dl.catalog.ResampleAlgorithm.BILINEAR option is also available.
 
     Returns
     -------
@@ -360,6 +365,7 @@ def create_mosaic(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         pad=pad,
+        resampler=resampler,
     )
 
 
@@ -589,7 +595,12 @@ def select_scenes(
     )
 
 
-def stack_scenes(scenes_graft: Dict, bands: str, pad: int = 0) -> Dict:
+def stack_scenes(
+    scenes_graft: Dict,
+    bands: str,
+    pad: int = 0,
+    resampler: dl.catalog.ResampleAlgorithm = dl.catalog.ResampleAlgorithm.NEAR,
+) -> Dict:
     """
     Given a graft that evaluates to an ImageCollection, create a graft that evaluates to
     an image stack array associated with that ImageCollection
@@ -602,6 +613,9 @@ def stack_scenes(scenes_graft: Dict, bands: str, pad: int = 0) -> Dict:
         Space separated list of band names
     pad: int
         Padding value, defaults to zero
+    resampler : dl.catalog.ResampleAlgorithm
+        default: dl.catalog.ResampleAlgorithm.NEAR. Optional resampling algorithm to use when mosaicking.
+        dl.catalog.ResampleAlgorithm.BILINEAR option is also available.
 
     Returns
     -------
@@ -610,7 +624,9 @@ def stack_scenes(scenes_graft: Dict, bands: str, pad: int = 0) -> Dict:
         the ImageCollection
 
     """
-    return graft_client.apply_graft("stack_scenes", scenes_graft, bands, pad=pad)
+    return graft_client.apply_graft(
+        "stack_scenes", scenes_graft, bands, pad=pad, resampler=resampler
+    )
 
 
 def filter_by_id(stack_graft: Dict, id_list: str) -> Dict:

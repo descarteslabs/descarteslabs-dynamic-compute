@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Added
+
+- Added resampler to `from_product_bands` for `Mosaic` and `ImageStack`. All values from descarteslabs.catalog.ResampleAlgorithm are valid.
+
 ### Changed
 
 - Filtering of `ImageStack`s now directly uses `descarteslabs.catalog.properties`
