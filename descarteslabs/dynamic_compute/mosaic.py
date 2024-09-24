@@ -125,6 +125,8 @@ class Mosaic(
         scales=None,
         colormap=None,
         checkerboard=True,
+        classes=None,
+        val_range=None,
         log_level=logging.DEBUG,
         **parameter_overrides,
     ):
@@ -155,6 +157,8 @@ class Mosaic(
         colormap: str, default None
             The name of the colormap to apply to the `Mosaic`. Only valid if the
              `Mosaic` has a single band.
+        classes: list, default None
+            Whether or not there are classes in the layer, indicating it is classified
         checkerboard: bool, default True
             Whether to display a checkerboarded background for missing or masked data.
         log_level: int, default logging.DEBUG
@@ -195,6 +199,8 @@ class Mosaic(
             scales=scales,
             colormap=colormap,
             checkerboard=checkerboard,
+            classes=classes,
+            val_range=val_range,
             log_level=log_level,
             parameter_overrides=parameter_overrides,
         )
@@ -415,6 +421,8 @@ class Mosaic(
         colormap: Optional[str] = None,
         scales: Optional[List[List]] = None,
         checkerboard=True,
+        classes: Optional[List[Dict]] = None,
+        val_range=False,
         **parameter_overrides,
     ) -> ipyleaflet.leaflet.TileLayer:
         """
@@ -431,6 +439,8 @@ class Mosaic(
         scales: list
             List of lists where each sub-list is a lower and upper bound. There must be
             as many sub-lists as bands in the mosaic
+        classes: list, default None
+            Whether or not there are classes in the layer, indicating it is classified
 
         Returns
         -------
@@ -452,6 +462,8 @@ class Mosaic(
                     layer.set_imagery(self, **parameter_overrides)
                     layer.set_scales(scales, new_colormap=colormap)
                     layer.checkerboard = checkerboard
+                    layer.classes = classes
+                    layer.val_range = val_range
                 return layer
         else:
             layer = self.tile_layer(
@@ -459,6 +471,8 @@ class Mosaic(
                 scales=scales,
                 colormap=colormap,
                 checkerboard=checkerboard,
+                classes=classes,
+                val_range=val_range,
                 **parameter_overrides,
             )
             map.add_layer(layer)

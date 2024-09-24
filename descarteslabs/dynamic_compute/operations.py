@@ -248,6 +248,7 @@ def create_layer(
     graft: dict,
     colormap: Optional[str] = None,
     scales: Optional[list] = None,
+    classes: Optional[list] = None,
     vector_tile_layer_styles: Optional[dict] = None,
     raster: bool = True,
 ):
@@ -308,6 +309,8 @@ def create_layer(
         params["scales"] = json.dumps(scales)
     if colormap is not None:
         params["colormap"] = colormap
+    if classes is not None:
+        params["classes"] = classes
     if vector_tile_layer_styles is None:
         vector_tile_layer_styles = {}
     query_params = urlencode(params)

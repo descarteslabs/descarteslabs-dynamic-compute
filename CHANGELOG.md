@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Added resampler to `from_product_bands` for `Mosaic` and `ImageStack`. All values from descarteslabs.catalog.ResampleAlgorithm are valid.
+- Added an optional `"classes"` parameter to `.visualize`. When added, the data will be clipped to those values to be visualized as a classified layer.
 
 ### Changed
 

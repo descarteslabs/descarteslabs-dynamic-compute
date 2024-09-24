@@ -3,6 +3,7 @@ import json
 import logging
 import threading
 import uuid
+import warnings
 from importlib.metadata import version
 from urllib.parse import urlencode
 
@@ -63,6 +64,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         Read-only: Unique ID that logs will be stored under, generated automatically.
     checkerboard: bool, default True
         Whether to display a checkerboarded background for missing or masked data.
+    classes: list, default None
+        Whether or not there are classes in the layer, indicating it is classified
     colormap: str, optional, default None
         Name of the colormap to use.
         If set, `imagery` must have 1 band.
@@ -134,6 +137,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     log_level = traitlets.Int(logging.DEBUG)
 
     checkerboard = traitlets.Bool(True, allow_none=True)
+    classes = traitlets.Instance(list, allow_none=True)
+    val_range = traitlets.Bool(False, allow_none=True)
     reduction = traitlets.Unicode("mosaic")
     colormap = traitlets.Unicode(None, allow_none=True)
 
@@ -154,10 +159,25 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         colormap=None,
         checkerboard=None,
         reduction=None,
+        classes=None,
+        val_range=None,
         log_level=logging.DEBUG,
         parameter_overrides=None,
         **kwargs,
     ):
+
+        if classes and scales:
+            warnings.warn("Classes are provided, scales will be ignored")
+
+        if classes and len(imagery.bands.split(" ")) > 1:
+            warnings.warn(
+                "Classes can only be used with single-band images, classes will be ignored"
+            )
+
+        if val_range and not classes:
+            warnings.warn(
+                "val_range is set to True but classes are not provided; val_range will be ignored"
+            )
 
         if parameter_overrides is None:
             parameter_overrides = {}
@@ -171,6 +191,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             if reduction is not None:
                 self.reduction = reduction
             self.checkerboard = checkerboard
+            self.classes = classes
             self.log_level = log_level
             self.set_imagery(imagery, **parameter_overrides)
 
@@ -323,6 +344,10 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             params["colormap"] = self.colormap
         if self.checkerboard is not None:
             params["checkerboard"] = self.checkerboard
+        if self.classes is not None:
+            params["classes"] = json.dumps(self.classes)
+        if self.val_range is not None:
+            params["val_range"] = json.dumps(self.val_range)
         # if vector_tile_layer_styles is None:
         #     vector_tile_layer_styles = {}
         query_params = urlencode(params)
@@ -385,6 +410,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         "b_max",
         "session_id",
         "parameters",
+        "classes",
     )
     def _update_url(self, change):
         if self._url_updates_blocked:
