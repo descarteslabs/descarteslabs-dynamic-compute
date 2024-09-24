@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.3.0 - 09/24/2024
+
 ### Added
 
 - Added resampler to `from_product_bands` for `Mosaic` and `ImageStack`. All values from descarteslabs.catalog.ResampleAlgorithm are valid.
