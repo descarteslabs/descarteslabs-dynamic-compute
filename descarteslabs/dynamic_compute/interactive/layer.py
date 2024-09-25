@@ -10,6 +10,8 @@ from urllib.parse import urlencode
 import descarteslabs as dl
 import ipyleaflet
 import ipywidgets as widgets
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 import requests
 import traitlets
 
@@ -192,6 +194,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                 self.reduction = reduction
             self.checkerboard = checkerboard
             self.classes = classes
+            self._set_class_colors()
             self.log_level = log_level
             self.set_imagery(imagery, **parameter_overrides)
 
@@ -345,6 +348,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         if self.checkerboard is not None:
             params["checkerboard"] = self.checkerboard
         if self.classes is not None:
+            self._set_class_colors()
             params["classes"] = json.dumps(self.classes)
         if self.val_range is not None:
             params["val_range"] = json.dumps(self.val_range)
@@ -355,6 +359,23 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         # Construct a URL to request tiles with
         url = f"{API_HOST}/layers/{layer_id}/tile/{{z}}/{{x}}/{{y}}?{query_params}"
         return url
+
+    def _set_class_colors(self):
+        """Set the class dictionary properly"""
+        if self.classes is None:
+            # Nothing to do if classes don't exist
+            return
+        if self.colormap:
+            # If a colormap is defined, use it to define colors. This will override user defined colors.
+            cmap = plt.get_cmap(self.colormap, len(self.classes) + 1)
+        elif "color" not in self.classes[0].keys():
+            # Colormap is not defined, but colors are not either
+            cmap = plt.get_cmap("viridis", len(self.classes) + 1)
+        else:
+            # User provided colors with no map, use them.
+            return
+        for i, cls_ in enumerate(self.classes):
+            cls_["color"] = mpl.colors.rgb2hex(cmap(i))
 
     @contextlib.contextmanager
     def hold_url_updates(self):
