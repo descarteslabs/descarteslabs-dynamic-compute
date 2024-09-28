@@ -493,13 +493,13 @@ files = [
 
 [[package]]
 name = "descarteslabs"
-version = "3.0.0"
+version = "3.1.0"
 description = "Descartes Labs Python Client"
 optional = false
-python-versions = "~=3.8"
+python-versions = "~=3.9"
 files = [
-    {file = "descarteslabs-3.0.0-py3-none-any.whl", hash = "sha256:bdca4e07b56cbe3eeeffbbf343fe73fb55d835af64c87a2dbb6843e30c88eae3"},
-    {file = "descarteslabs-3.0.0.tar.gz", hash = "sha256:14714b9daa5aa8ab9dd6d61ff014a1432e17bc2bda3d7f9f1c56c206da48e64c"},
+    {file = "descarteslabs-3.1.0-py3-none-any.whl", hash = "sha256:2b552d2d7b015f88a7a7c0df59f5c6169703191e025b5806c28f880820c255de"},
+    {file = "descarteslabs-3.1.0.tar.gz", hash = "sha256:acc1dafd0d6be2479bc673d2ce0e081a20b60c377f08efc45bfc3310d97f85b3"},
 ]
 
 [package.dependencies]
@@ -510,24 +510,24 @@ dill = ">=0.3.6"
 dynaconf = ">=3.1.11"
 geojson = ">=2.5.0"
 geopandas = ">=0.13.2"
-imagecodecs = ">=2021.5.20"
+imagecodecs = {version = ">=2023.3.16", markers = "python_version >= \"3.9\""}
 lazy-object-proxy = ">=1.7.1"
 mercantile = ">=1.1.3"
 numpy = [
-    {version = ">=1.21.6", markers = "python_version >= \"3.8\" and python_version < \"3.11\""},
+    {version = ">=1.22.0", markers = "python_version >= \"3.8\" and python_version < \"3.11\""},
     {version = ">=1.23.2", markers = "python_version >= \"3.11\""},
 ]
 Pillow = ">=9.2.0"
-pyarrow = ">=13.0.0"
+pyarrow = ">=14.0.1"
 pydantic = ">=2.1.0"
 pytz = ">=2021.1"
-requests = ">=2.28.1,<3"
+requests = ">=2.31.0,<3"
 setuptools = ">=65.6.3"
 shapely = ">=2.0.0"
 strenum = ">=0.4.8"
 tifffile = {version = ">=2023.9.26", markers = "python_version >= \"3.9\""}
 tqdm = ">=4.32.1"
-urllib3 = ">=1.26.18"
+urllib3 = ">=1.26.18,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.0.2 || >2.0.2,<2.0.3 || >2.0.3,<2.0.4 || >2.0.4"
 
 [package.extras]
 complete = ["ipyleaflet (>=0.17.2)", "matplotlib (>=3.1.2)"]
