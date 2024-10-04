@@ -1,5 +1,6 @@
 from .client import (
     apply_graft,
+    compress_graft,
     consistent_guid,
     function_graft,
     guid,
@@ -28,4 +29,5 @@ __all__ = [
     "splice",
     "consistent_guid",
     "unset_all_cache_ids",
+    "compress_graft",
 ]

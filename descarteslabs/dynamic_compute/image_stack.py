@@ -42,6 +42,7 @@ from .operations import (
     select_scenes,
     set_cache_id,
     stack_scenes,
+    update_kwarg,
 )
 from .reductions import reduction
 from .serialization import BaseSerializationModel
@@ -246,6 +247,7 @@ class ImageStack(
 
         assert isinstance(pad, int)
         assert pad >= 0
+        assert resampler in dl.catalog.ResampleAlgorithm
 
         set_cache_id(full_graft)
         super().__init__(full_graft)
@@ -418,6 +420,33 @@ class ImageStack(
             _band_op(self, "pick_bands", bands=json.dumps(bands), other_obj=None),
             bands=bands,
             product_id=self.product_id,
+        )
+
+    def update_resampler(self, resampler: dl.catalog.ResampleAlgorithm) -> ImageStack:
+        """
+        Create a new mosaic object with an updated resampler
+
+        Parameters
+        ----------
+        resampler: dl.catalog.ResampleAlgorithm
+            New resampler algorithm
+
+        Returns
+        -------
+        updated_mosaic: ImageStack
+            Mosaic with updated resampling
+        """
+        assert resampler in dl.catalog.ResampleAlgorithm
+
+        # Replace the resampler for any stack_scenes nodes
+
+        return ImageStack(
+            update_kwarg(dict(self), "stack_scenes", "resampler", resampler),
+            self.bands,
+            self.product_id,
+            self.start_datetime,
+            self.end_datetime,
+            resampler=resampler,
         )
 
     def unpack_bands(

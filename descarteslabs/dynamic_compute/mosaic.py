@@ -8,6 +8,7 @@ from copy import deepcopy
 from numbers import Number
 from typing import Dict, List, Optional, Tuple, Union
 
+import descarteslabs as dl
 import ipyleaflet
 
 from .compute_map import (
@@ -45,6 +46,7 @@ from .operations import (
     op_type,
     reset_graft,
     set_cache_id,
+    update_kwarg,
 )
 from .reductions import reduction
 from .serialization import BaseSerializationModel
@@ -488,6 +490,39 @@ class Mosaic(
             start_datetime=self.start_datetime,
             end_datetime=self.end_datetime,
         ).json()
+
+    def update_resampler(self, resampler: dl.catalog.ResampleAlgorithm) -> Mosaic:
+        """
+        Create a new mosaic object with an updated resampler
+
+        Parameters
+        ----------
+        resampler: dl.catalog.ResampleAlgorithm
+            New resampler algorithm
+
+        Returns
+        -------
+        updated_mosaic: Mosaic
+            Mosaic with updated resampling
+        """
+        assert resampler in dl.catalog.ResampleAlgorithm
+
+        # Replace the resampler for any mosaic nodes.
+        intermediate_graft = update_kwarg(dict(self), "mosaic", "resampler", resampler)
+
+        # Since we can build a mosaic from operations on an image stack, update the resampler
+        # in the image stacks ("stack_scenes") as well.
+        new_graft = update_kwarg(
+            intermediate_graft, "stack_scenes", "resampler", resampler
+        )
+
+        return Mosaic(
+            new_graft,
+            self.bands,
+            self.product_id,
+            self.start_datetime,
+            self.end_datetime,
+        )
 
     def gradient_x(self, resolution: Optional[float] = None) -> Mosaic:
         """

@@ -1314,3 +1314,86 @@ def masked_einsum(
     mask = np.isnan(np.einsum(signature, nan_mask1, nan_mask2))
 
     return np.ma.masked_array(unmasked_result, mask)
+
+
+def update_kwarg(graft: dict, node_type: str, kwarg: str, value: str) -> dict:
+    """
+    Update, or set, a particular keyword argument within a type of graft node.
+
+    Parameters
+    ----------
+    graft: dict
+        Graft to be updated.
+    node_type: str
+        The type of node to upate, e.g. "mosaic"
+    kwarg: str
+        The keyword argument to change.
+    value: str
+        The value to set for the keyword argument
+
+    Returns
+    -------
+    new_graft: dict
+       A new graft with updated keyword argument values for the specified node_type
+    """
+
+    # Make a copy of the input graft, remove any cache ids, and ensure unique keys.
+    # We don't want to modify the input in place.
+    new_graft = reset_graft(graft_client.unset_all_cache_ids(deepcopy(graft)))
+
+    # Create a new piece of graft with the desired value
+    new_value_graft = graft_client.value_graft(value)
+    new_value_key = new_value_graft.pop("returns")
+
+    found_update = False
+
+    # Walk through the new_graft.
+    for key in new_graft:
+
+        # Computational nodes, as opposed to value nodes, are always lists.
+        if type(new_graft[key]) is not list:
+            continue
+
+        # Defensive coding, this should never happen.
+        if len(new_graft[key]) == 0:
+            continue
+
+        # This is a computational node.
+        node = new_graft[key]
+
+        # Filter the node types we want.
+        if node[0] != node_type:
+            continue
+
+        # Walk through the node looking for kwargs.
+        node_has_kwargs = False
+        for element in node:
+
+            # The node's kwargs are a dict
+            if type(element) is not dict:
+                continue
+
+            # NB Even if kwarg_value_key is not None, we don't want to
+            # change the graft via
+            #
+            # new_graft[kwarg_value_key] = value
+            #
+            # It could be that other components of the graft, which we
+            # want to stay unchanged, reference kwarg_value_key. For
+            # this reason we create a new value entry and will
+            # compress the graft when we're done.
+
+            element.update({kwarg: new_value_key})
+            node_has_kwargs = True
+
+        # If the node did not have any kwargs, provide
+        # this as one.
+        if not node_has_kwargs:
+            node.append({kwarg: new_value_key})
+
+        found_update = True
+
+    if found_update:
+        new_graft.update(new_value_graft)
+
+    return graft_client.compress_graft(new_graft)
