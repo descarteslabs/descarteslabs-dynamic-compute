@@ -512,7 +512,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                 new_logs.append(error)
         self.log_output.outputs = tuple(new_logs)
 
-    def set_scales(self, scales, new_colormap=False):
+    def set_scales(self, scales, new_colormap=False, new_classes=False):
         """
         Update the scales for this layer by giving a list of scales
 
@@ -533,6 +533,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             based on the min and max values of its data.
         new_colormap: str, None, or False, optional, default False
             A new colormap to set at the same time, or False to use the current colormap.
+        new_classes: list of dicts, or False, or None, default False
+            New classes to use for the layer. If False, current classes will be used if available
 
         Example
         -------
@@ -544,22 +546,20 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         >>> # ^ optionally set new colormap
         """
         colormap = self.colormap if new_colormap is False else new_colormap
+        classes = self.classes if new_classes is False else new_classes
 
         if scales is not None:
             scales = validate_scales(scales)
 
-            scales_len = 1 if colormap is not None else 3
-            if len(scales) != scales_len:
-                msg = "Expected {} scales, but got {}.".format(scales_len, len(scales))
-                if len(scales) in (1, 2):
-                    msg += " If displaying a 1-band Image, use a colormap."
-                elif colormap:
-                    msg += " Colormaps cannot be used with multi-band images."
-
+            if len(scales) == 1 and colormap is None and classes is None:
+                msg = "When displaying a 1-band image, either classes or a colormap must be defined."
+                raise ValueError(msg)
+            elif len(scales) == 3 and colormap is not None and classes is None:
+                msg = "Colormaps can only be used with 3-band images if classes are also defined."
                 raise ValueError(msg)
 
             with self.hold_url_updates():
-                if colormap is None:
+                if colormap is None and classes is None:
                     self.r_min = scales[0][0]
                     self.r_max = scales[0][1]
                     self.g_min = scales[1][0]
@@ -571,10 +571,12 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                     self.r_max = scales[0][1]
                 if new_colormap is not False:
                     self.colormap = new_colormap
+                if new_classes is not False:
+                    self.classes = new_classes
         else:
             # scales is None
             with self.hold_url_updates():
-                if colormap is None:
+                if colormap is None and classes is None:
                     self.r_min = None
                     self.r_max = None
                     self.g_min = None
@@ -586,6 +588,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                     self.r_max = None
                 if new_colormap is not False:
                     self.colormap = new_colormap
+                if new_classes is not False:
+                    self.classes = new_classes
 
     def get_scales(self):
         """
