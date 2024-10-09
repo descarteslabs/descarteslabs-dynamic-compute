@@ -4,9 +4,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.3.1 - 10/09/2024
+
 ### Added
 
 - Mosaic and ImageStack instances now provide a means to change the resampling method.
+
+### Fixed
+
+- Fixed a bug in the `set_scales` method when using classified layers.
 
 ## v1.3.0 - 09/24/2024
 
