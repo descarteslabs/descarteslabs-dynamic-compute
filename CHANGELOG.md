@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Fixed a bug in classified layers where the data was not actually masked, and another where the alpha was not actually applied.
 
+### Added
+
+- Added an optional `alpha` kwarg to calls on `.Mosaic`, which allows for a Mosaic to be passed in to control pixel transparency
+
 ## v1.3.1 - 10/09/2024
 
 ### Added

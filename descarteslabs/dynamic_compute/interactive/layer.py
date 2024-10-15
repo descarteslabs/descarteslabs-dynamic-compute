@@ -71,6 +71,10 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     colormap: str, optional, default None
         Name of the colormap to use.
         If set, `imagery` must have 1 band.
+    alpha: ~.Mosaic, optional, default to None
+        The optional Mosaic to use to control transparency, e.g.
+        an actual alpha channel that will be applied to tiles. It is up to
+        the user to create a reasonable alpha channel, we do no checks about the values
     reduction: {"min", "max", "mean", "median", "mosaic", "sum", "std", "count"}
         If displaying a `~.Mosaic`, this method is used to reduce it
         into an `~.ImageStack`. Reduction is performed before applying a colormap or scaling.
@@ -143,6 +147,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     val_range = traitlets.Bool(False, allow_none=True)
     reduction = traitlets.Unicode("mosaic")
     colormap = traitlets.Unicode(None, allow_none=True)
+    alpha = traitlets.Instance(dict, allow_none=True)
 
     r_min = ScaleFloat(None, allow_none=True)
     r_max = ScaleFloat(None, allow_none=True)
@@ -163,6 +168,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         reduction=None,
         classes=None,
         val_range=None,
+        alpha=None,
         log_level=logging.DEBUG,
         parameter_overrides=None,
         **kwargs,
@@ -181,6 +187,11 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
                 "val_range is set to True but classes are not provided; val_range will be ignored"
             )
 
+        if alpha is not None:
+            assert (
+                type(alpha) == dl.dynamic_compute.mosaic.Mosaic
+            ), "Alpha must be a Mosaic layer"
+
         if parameter_overrides is None:
             parameter_overrides = {}
 
@@ -195,6 +206,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             self.checkerboard = checkerboard
             self.classes = classes
             self._set_class_colors()
+            self.alpha = alpha
             self.log_level = log_level
             self.set_imagery(imagery, **parameter_overrides)
 
@@ -336,6 +348,19 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             else:
                 raise e
 
+        if self.alpha:
+            # Create an alpha layer from the graft
+            alpha_response = requests.post(
+                f"{API_HOST}/layers/",
+                headers={"Authorization": dl.auth.Auth.get_default_auth().token},
+                json={
+                    "graft": self.alpha,
+                    "python_version": _python_major_minor_version,
+                    "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
+                },
+            )
+            alpha = json.loads(alpha_response.content.decode("utf-8"))["layer_id"]
+
         layer_id = json.loads(response.content.decode("utf-8"))["layer_id"]
         self.set_trait("layer_id", layer_id)
         # URL encode query parameters
@@ -352,6 +377,8 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             params["classes"] = json.dumps(self.classes)
         if self.val_range is not None:
             params["val_range"] = json.dumps(self.val_range)
+        if self.alpha is not None:
+            params["alpha"] = alpha
         # if vector_tile_layer_styles is None:
         #     vector_tile_layer_styles = {}
         query_params = urlencode(params)
@@ -432,6 +459,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         "session_id",
         "parameters",
         "classes",
+        "alpha",
     )
     def _update_url(self, change):
         if self._url_updates_blocked:

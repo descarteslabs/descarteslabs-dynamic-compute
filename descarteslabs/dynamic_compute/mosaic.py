@@ -129,6 +129,7 @@ class Mosaic(
         checkerboard=True,
         classes=None,
         val_range=None,
+        alpha=None,
         log_level=logging.DEBUG,
         **parameter_overrides,
     ):
@@ -203,6 +204,7 @@ class Mosaic(
             checkerboard=checkerboard,
             classes=classes,
             val_range=val_range,
+            alpha=alpha,
             log_level=log_level,
             parameter_overrides=parameter_overrides,
         )
@@ -425,6 +427,7 @@ class Mosaic(
         checkerboard=True,
         classes: Optional[List[Dict]] = None,
         val_range=False,
+        alpha: Optional[str] = None,
         **parameter_overrides,
     ) -> ipyleaflet.leaflet.TileLayer:
         """
@@ -466,6 +469,7 @@ class Mosaic(
                     layer.checkerboard = checkerboard
                     layer.classes = classes
                     layer.val_range = val_range
+                    layer.alpha = alpha
                 return layer
         else:
             layer = self.tile_layer(
@@ -475,6 +479,7 @@ class Mosaic(
                 checkerboard=checkerboard,
                 classes=classes,
                 val_range=val_range,
+                alpha=alpha,
                 **parameter_overrides,
             )
             map.add_layer(layer)
