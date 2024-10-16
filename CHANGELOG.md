@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.3.2 - 10/16/2024
+
 ### Fixed
 
 - Fixed a bug in classified layers where the data was not actually masked, and another where the alpha was not actually applied.
