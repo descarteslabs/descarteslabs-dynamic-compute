@@ -32,6 +32,7 @@ from .operations import (
     _index,
     _length,
     _mask_op,
+    encode_function,
     filter_by_id,
     filter_data,
     format_bands,
@@ -349,17 +350,11 @@ class ImageStack(
         """
 
         try:
-            return ImageStack(
-                filter_data(
-                    dict(self), json.dumps(pred.jsonapi_serialize(dl.catalog.Image))
-                )
-            )
-        except AttributeError:
-            raise Exception(
-                "ImageStack filtering follows the pattern for ImageSearch filtering defined here:\n"
-                + "https://docs.descarteslabs.com/descarteslabs/catalog/docs/image.html"
-                + "#descarteslabs.catalog.ImageCollection.filter"
-            )
+            encoded_func = json.dumps(pred.jsonapi_serialize(dl.catalog.Image))
+        except Exception:
+            encoded_func = encode_function(pred)
+
+        return ImageStack(filter_data(dict(self), encoded_func))
 
     def get(self, idx: int) -> Mosaic:
         """
