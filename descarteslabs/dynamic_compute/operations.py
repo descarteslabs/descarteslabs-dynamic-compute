@@ -527,6 +527,22 @@ def _clip_data(obj, lo, hi, **kwargs):
     return graft_client.apply_graft("clip", obj, lo, hi)
 
 
+def _fill_mask(obj, fill_val, **kwargs):
+    """Apply a math operation between a graft and optionally another graft
+
+    Params
+    obj : graft
+        The graft that the clip is applying to
+    fill_val : Union[int, float, np.nan]
+        The value to fill in a masked array
+
+    Returns
+    graft encoding the filling
+    """
+
+    return graft_client.apply_graft("filled", obj, fill_val)
+
+
 def _band_op(main_obj, operation, bands=None, other_obj=None, **kwargs):
     """Apply a band operation between a graft and optionally another graft
 

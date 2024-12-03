@@ -34,6 +34,7 @@ from .interactive.tile_url import validate_scales
 from .operations import (
     _band_op,
     _clip_data,
+    _fill_mask,
     _mask_op,
     _resolution_graft_x,
     _resolution_graft_y,
@@ -397,6 +398,22 @@ class Mosaic(
             raise Exception(f"Lower bound ({lo}) is not less than upper bound ({hi})")
 
         return Mosaic(_clip_data(self, lo, hi))
+
+    def filled(self, fill_val) -> Mosaic:
+        """
+        Generate a new Mosaic that has masked values filled with specified value.
+
+        Parameters
+        ----------
+        fill_val: Number
+            value to fill masked pixels
+
+        Returns
+        -------
+        bounded: Mosaic
+            New Mosaic object that is bounded
+        """
+        return Mosaic(_fill_mask(self, fill_val))
 
     def reduce(self, reducer: str, axis: str = "bands"):
         """

@@ -104,6 +104,10 @@ def clip_data(*args, **kwargs):
     return None
 
 
+def fill_mask(*args, **kwargs):
+    return None
+
+
 def graft_resolution_x(*args, **kwargs):
     return None
 
@@ -209,6 +213,7 @@ class ComputeMap(dict, ABC):
                     ("mask", mask),
                     ("functional", functional),
                     ("dot", dot),
+                    ("filled", fill_mask),
                 ],
                 debug=True,
             )()

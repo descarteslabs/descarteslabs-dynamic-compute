@@ -29,6 +29,7 @@ from .mosaic import Mosaic
 from .operations import (
     _band_op,
     _clip_data,
+    _fill_mask,
     _index,
     _length,
     _mask_op,
@@ -551,6 +552,22 @@ class ImageStack(
             raise Exception(f"Lower bound ({lo}) is not less than upper bound ({hi})")
 
         return ImageStack(_clip_data(self, lo, hi))
+
+    def filled(self, fill_val) -> Mosaic:
+        """
+        Generate a new ImageStack that has masked values filled with specified value.
+
+        Parameters
+        ----------
+        fill_val: Number
+            value to fill masked pixels
+
+        Returns
+        -------
+        filled: ImageStack
+            New ImageStack object that is filled
+        """
+        return ImageStack(_fill_mask(self, fill_val))
 
     def reduce(self, reducer: str, axis: str = "images") -> Union[Mosaic, ImageStack]:
         """
