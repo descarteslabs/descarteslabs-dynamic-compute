@@ -4,6 +4,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+## v1.3.4 - 12/03/2024
+
 ### Added
 
 - Added a `.filled` operation to `Mosaic` and `ImageStacks` that allows one to fill the masked values of a masked array with a given value
