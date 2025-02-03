@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 
+### Fixed
+
+- Fixed a bug in reductions so that reduction by image over empty image stacks return an appropriate shaped resul.
+
 ## v1.3.4 - 12/03/2024
 
 ### Added
