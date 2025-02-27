@@ -1,9 +1,11 @@
 import contextlib
+import hashlib
 import json
 import logging
 import threading
 import uuid
 import warnings
+from datetime import date, datetime
 from importlib.metadata import version
 from urllib.parse import urlencode
 
@@ -15,13 +17,13 @@ import matplotlib.pyplot as plt
 import requests
 import traitlets
 
+from ..datetime_utils import normalize_datetime_or_none
 from ..operations import (
     API_HOST,
     UnauthorizedUserError,
     _python_major_minor_version,
     set_cache_id,
 )
-from . import parameters
 from .clearable import ClearableOutput
 from .tile_url import validate_scales
 
@@ -51,9 +53,9 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     image_value: ~.Mosaic
         Read-only: a parametrized version of `imagery` as a `~.Mosaic`,
         with any `reduction` applied and all the values of `parameters` embedded in it
-    parameters: ParameterSet
+    parameters: dict
         Parameters to use while computing; modify attributes under ``.parameters``
-        (like ``layer.parameters.foo = "bar"``) to cause the layer to recompute
+        (like ``layer.update_parameters(foo = "bar")``) to cause the layer to recompute
         and update under those new parameters. This trait is read-only in that you
         can't do ``layer.parameters = a_new_parameter_set``, but you can change the attributes
         *within* ``layer.parameters``.
@@ -137,7 +139,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
     image_value = traitlets.Instance(dict, read_only=True, allow_none=True)
 
-    parameters = traitlets.Instance(parameters.ParameterSet, read_only=True)
+    parameters = traitlets.Instance(dict, allow_none=True)
 
     session_id = traitlets.Unicode(read_only=True)
     log_level = traitlets.Int(logging.DEBUG)
@@ -199,7 +201,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         super().__init__(**kwargs)
 
         with self.hold_url_updates():
-            self.set_trait("parameters", parameters.ParameterSet(self, "parameters"))
+            self.parameters = parameter_overrides
             self.set_scales(scales, new_colormap=colormap)
             if reduction is not None:
                 self.reduction = reduction
@@ -243,37 +245,29 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         # We don't do any typechecking of parameter values here; that'll be dealt with
         # later (within `ParameterSet` when trying to actually assign the trait values).
         merged_params = {}
-        if hasattr(imagery, "params"):
-            for param in imagery.params:
-                name = param._name
-                try:
-                    merged_params[name] = parameter_overrides.pop(name)
-                    # TODO when you override the value of a widget-based parameter, you'd like to keep
-                    # the same type of widget (but a new instance in case it's linked to other stuff)
-                except KeyError:
-                    try:
-                        merged_params[name] = param.widget
-                    except AttributeError:
-                        raise ValueError(
-                            f"Missing required parameter {name!r} ({type(param).__name__}) "
-                            f"for layer {self.name!r}"
-                        ) from None
-            if parameter_overrides:
+        for name, value in self.parameters.items():
+            try:
+                merged_params[name] = parameter_overrides.pop(name)
+                # TODO when you override the value of a widget-based parameter, you'd like to keep
+                # the same type of widget (but a new instance in case it's linked to other stuff)
+            except KeyError:
                 raise ValueError(
-                    f"Unexpected parameters {tuple(parameter_overrides)}. This layer only "
-                    f"accepts the parameters {tuple(p._name for p in imagery.params)}."
-                )
+                    f"Missing required parameter {name!r} for layer {self.name!r}"
+                ) from None
+        if parameter_overrides:
+            raise ValueError(
+                f"Unexpected parameters {tuple(parameter_overrides)}. This layer only "
+                f"accepts the parameters {tuple(p for p in self.parameters)}."
+            )
 
-        xyz_warnings = []
         with self.hold_url_updates():
             if not self.trait_has_value("imagery") or imagery is not self.imagery:
                 self.set_trait("imagery", imagery)
 
             self.parameters.update(**merged_params)
 
-        # NOTE: we log after the `hold_url_updates` block so our messages don't get immediately cleared
-        for w in xyz_warnings:
-            self._log(w.message)
+    def update_parameters(self, **kwargs):
+        self.set_imagery(self.imagery, **kwargs)
 
     def trait_has_value(self, name):
         # Backport for traitlets < 5.0, to maintain py3.6 support.
@@ -316,7 +310,10 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
 
         scales = [scale for scale in scales if scale != [None, None]]
 
-        parameters = self.parameters.to_dict()
+        parameters = self.parameters
+        for key, value in self.parameters.items():
+            if type(value) in [datetime, date]:
+                parameters[key] = normalize_datetime_or_none(value)
 
         # assume a None parameter value means the value is missing
         # and we can't render the layer.
@@ -379,6 +376,12 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             params["val_range"] = json.dumps(self.val_range)
         if self.alpha is not None:
             params["alpha"] = alpha
+        if parameters is not None:
+            params["parameters"] = json.dumps(parameters)
+            param_id = hashlib.sha256(
+                bytes(json.dumps(parameters), "utf-8")
+            ).hexdigest()
+            params["param_id"] = param_id
         # if vector_tile_layer_styles is None:
         #     vector_tile_layer_styles = {}
         query_params = urlencode(params)

@@ -252,7 +252,7 @@ class ComputeMap(dict, ABC):
         return new_compute_map
 
     def compute(
-        self, aoi: dl.geo.AOI
+        self, aoi: dl.geo.AOI, **kwargs
     ) -> Union[
         np.ma.MaskedArray,  # We're returning just data
         List,  # We're returning just properties, and they are a list
@@ -275,7 +275,7 @@ class ComputeMap(dict, ABC):
             as a DotDict
         """
 
-        value, properties = compute_aoi(self, aoi)
+        value, properties = compute_aoi(self, aoi, **kwargs)
 
         if "return_type" in properties:
             value = type_map[properties["return_type"]](value)

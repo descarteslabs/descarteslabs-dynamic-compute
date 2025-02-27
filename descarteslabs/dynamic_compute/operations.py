@@ -224,6 +224,7 @@ def set_cache_id(graft: Dict):
     graft : dict
         The graft where the cache ID will be set.
     """
+
     normalized_graft = _normalize_graft(graft)
     cache_id = hashlib.sha256(bytes(json.dumps(normalized_graft), "utf-8")).hexdigest()
 
@@ -277,6 +278,7 @@ def create_layer(
     lyr : ipyleaflet.TileLayer or ipyleaflet.VectorTileLayer
         Tile layer that can be added to an ipyleaflet map object.
     """
+
     # Create a layer from the graft
     response = requests.post(
         f"{API_HOST}/layers/",
@@ -707,7 +709,7 @@ def groupby(scenes_graft: Dict, encoded_key_func: str):
 
 
 def compute_aoi(
-    graft: Dict, aoi: dl.geo.AOI, layer_id: str = None
+    graft: Dict, aoi: dl.geo.AOI, layer_id: str = None, **kwargs
 ) -> np.ma.MaskedArray:
     """Compute an AOI of a layer.
 
@@ -794,6 +796,7 @@ def compute_aoi(
             "all_touched": aoi.all_touched,
             "python_version": _python_major_minor_version,
             "dynamic_compute_version": version("descarteslabs-dynamic-compute"),
+            "parameters": kwargs,
         },
     )
 
@@ -814,7 +817,11 @@ def compute_aoi(
 
 
 def value_at(
-    graft: Dict, lat: float, lon: float, layer_id: Optional[str] = None
+    graft: Dict,
+    lat: float,
+    lon: float,
+    layer_id: Optional[str] = None,
+    **kwargs,
 ) -> List[float]:
     """
     Return the mean values for each band of a graft at a specific location
@@ -834,13 +841,15 @@ def value_at(
     -------
         list of numbers
     """
+    if kwargs.get("parameters"):
+        kwargs = kwargs["parameters"]
 
     def _get_most_common_value(array) -> int:
         arr, counts = np.unique(array, return_counts=True)
         return int(arr[counts == counts.max()][0])
 
     aoi = _geocontext_from_latlon(lat, lon)
-    value_array, _ = compute_aoi(graft, aoi, layer_id)
+    value_array, _ = compute_aoi(graft, aoi, layer_id, **kwargs)
     if len(value_array.shape) > 1:
         if np.issubdtype(value_array.dtype.type, np.bool_):
             # if we're dealing with booleans, return the most common value

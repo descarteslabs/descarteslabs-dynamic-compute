@@ -23,7 +23,7 @@ from .compute_map import (
     TrueDivMixin,
     as_compute_map,
 )
-from .datetime_utils import normalize_datetime, normalize_datetime_or_none
+from .datetime_utils import normalize_datetime
 from .dl_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
@@ -46,6 +46,7 @@ from .operations import (
     stack_scenes,
     update_kwarg,
 )
+from .proxies import Datetime, parameter
 from .reductions import reduction
 from .serialization import BaseSerializationModel
 
@@ -216,8 +217,12 @@ class ImageStack(
         full_graft: Dict,
         bands: Optional[Union[str, List[str]]] = None,
         product_id: Optional[str] = None,
-        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
-        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        start_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
+        end_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
         pad: Optional[int] = 0,
         resampler: Optional[
             dl.catalog.ResampleAlgorithm
@@ -255,8 +260,8 @@ class ImageStack(
         super().__init__(full_graft)
         self.bands = bands
         self.product_id = str(product_id)
-        self.start_datetime = normalize_datetime_or_none(start_datetime)
-        self.end_datetime = normalize_datetime_or_none(end_datetime)
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
         self.init_args = {
             "bands": self.bands,
             "product_id": self.product_id,
@@ -271,8 +276,8 @@ class ImageStack(
         cls,
         product_id: str,
         bands: Union[str, List[str]],
-        start_datetime: Union[str, datetime.date, datetime.datetime],
-        end_datetime: Union[str, datetime.date, datetime.datetime],
+        start_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
+        end_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
         **kwargs,
     ) -> ImageStack:
         """
@@ -298,6 +303,18 @@ class ImageStack(
         _ = get_product_or_fail(product_id)
         start_datetime = normalize_datetime(start_datetime)
         end_datetime = normalize_datetime(end_datetime)
+
+        if isinstance(start_datetime, parameter):
+            assert (
+                start_datetime.type is Datetime
+            ), f"Proxytypes for dates must be dc.Datetime, not {start_datetime.type}"
+            start_datetime = start_datetime.name
+
+        if isinstance(end_datetime, parameter):
+            assert (
+                end_datetime.type is Datetime
+            ), f"Proxytypes for dates must be dc.Datetime, not {end_datetime.type}"
+            end_datetime = end_datetime.name
 
         formatted_bands = " ".join(format_bands(bands))
         # Create a keywords arg dict without resampling

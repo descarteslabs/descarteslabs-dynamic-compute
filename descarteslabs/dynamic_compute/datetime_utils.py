@@ -5,6 +5,8 @@ from typing import Union
 
 import dateutil
 
+from .proxies import Datetime, parameter
+
 
 def normalize_datetime(value: Union[str, datetime.date, datetime.datetime]) -> str:
     """Normalizes an input datetime like object to an isoformatted string
@@ -20,6 +22,12 @@ def normalize_datetime(value: Union[str, datetime.date, datetime.datetime]) -> s
         An isoformatted string representation of the input
     """
 
+    if isinstance(value, parameter):
+        assert (
+            value.type is Datetime
+        ), f"Proxytypes for dates must be dc.Datetime, not {value.type}"
+        return value
+
     if isinstance(value, str):
         value = dateutil.parser.parse(value)
 
@@ -34,7 +42,7 @@ def normalize_datetime(value: Union[str, datetime.date, datetime.datetime]) -> s
 
 
 def normalize_datetime_or_none(
-    value: Union[str, datetime.date, datetime.datetime, None]
+    value: Union[str, datetime.date, datetime.datetime, None, Datetime]
 ) -> Union[str, None]:
     """Helper function which attempts to normalize the input value as a datetime
     if the value is not None, otherwise retruns the value (aka None)
@@ -49,5 +57,10 @@ def normalize_datetime_or_none(
     Union[str, None]
         Returns either the normalized datetime as a string or None
     """
+    if isinstance(value, parameter):
+        assert (
+            value.type is Datetime
+        ), f"Proxytypes for dates must be dc.Datetime, not {value.type}"
+        return value
 
     return normalize_datetime(value) if value is not None else value

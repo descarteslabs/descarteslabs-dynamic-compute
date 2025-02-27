@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 
 - Added a `.filled` operation to `Mosaic` and `ImageStacks` that allows one to fill the masked values of a masked array with a given value
+- Added `Proxytype`, `Datetime`, and `parameter` functionality to allow users to pass delayed objects in for start and end dates.
 
 ## v1.3.3 - 11/13/2024
 

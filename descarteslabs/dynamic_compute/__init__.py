@@ -24,6 +24,7 @@ from .image_stack import ImageStack
 from .interactive import map
 from .mosaic import Mosaic
 from .operations import gradient_x, gradient_y
+from .proxies import Datetime, Proxytype, parameter
 
 from . import catalog  # isort: skip
 
@@ -53,4 +54,7 @@ __all__ = [
     "ImageStack",
     "ImageStackGroupBy",
     "map",
+    "parameter",
+    "Proxytype",
+    "Datetime",
 ]

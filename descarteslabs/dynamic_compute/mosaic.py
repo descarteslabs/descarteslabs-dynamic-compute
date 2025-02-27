@@ -49,6 +49,7 @@ from .operations import (
     set_cache_id,
     update_kwarg,
 )
+from .proxies import Datetime, parameter
 from .reductions import reduction
 from .serialization import BaseSerializationModel
 
@@ -94,8 +95,12 @@ class Mosaic(
         graft: Dict,
         bands: Optional[Union[str, List[str]]] = None,
         product_id: Optional[str] = None,
-        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
-        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        start_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
+        end_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
     ):
         """
         Initialize a new instance of Mosaic. Users should rely on
@@ -110,17 +115,17 @@ class Mosaic(
             of band names
         product_id: str
             Product id
-        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+        start_datetime: Optional[Union[str, datetime.date, datetime.datetime, Datetime]]
             Optional initial cutoff
-        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]]
+        end_datetime: Optional[Union[str, datetime.date, datetime.datetime, Datetime]]
             Optional final cutoff
         """
         set_cache_id(graft)
         super().__init__(graft)
         self.bands = bands
         self.product_id = product_id
-        self.start_datetime = normalize_datetime_or_none(start_datetime)
-        self.end_datetime = normalize_datetime_or_none(end_datetime)
+        self.start_datetime = start_datetime
+        self.end_datetime = end_datetime
 
     def tile_layer(
         self,
@@ -215,8 +220,12 @@ class Mosaic(
         cls,
         product_id: str,
         bands: Union[str, List[str]],
-        start_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
-        end_datetime: Optional[Union[str, datetime.date, datetime.datetime]] = None,
+        start_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
+        end_datetime: Optional[
+            Union[str, datetime.date, datetime.datetime, Datetime]
+        ] = None,
         **kwargs,
     ) -> Mosaic:
         """
@@ -243,6 +252,19 @@ class Mosaic(
         _ = get_product_or_fail(product_id)
         start_datetime = normalize_datetime_or_none(start_datetime)
         end_datetime = normalize_datetime_or_none(end_datetime)
+
+        if isinstance(start_datetime, parameter):
+            assert (
+                start_datetime.type is Datetime
+            ), f"Proxytypes for dates must be dc.Datetime, not {start_datetime.type}"
+            start_datetime = start_datetime.name
+
+        if isinstance(end_datetime, parameter):
+            assert (
+                end_datetime.type is Datetime
+            ), f"Proxytypes for dates must be dc.Datetime, not {end_datetime.type}"
+            end_datetime = end_datetime.name
+
         bands = " ".join(format_bands(bands))
 
         graft = create_mosaic(product_id, bands, start_datetime, end_datetime, **kwargs)

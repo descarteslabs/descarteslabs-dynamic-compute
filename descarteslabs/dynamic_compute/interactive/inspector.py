@@ -276,7 +276,8 @@ class InspectorRowGenerator(traitlets.HasTraits):
         # if the parameters are unhashable (probably because they contain grafts),
         # we'll consider it a cache miss and go fetch.
         try:
-            params_key = frozenset(self.layer.parameters.to_dict().items())
+            params_key = frozenset(self.layer.parameters.items())
+            params = self.layer.parameters
         except TypeError:
             cache_key = None
         else:
@@ -309,16 +310,17 @@ class InspectorRowGenerator(traitlets.HasTraits):
                     # ctx,
                     cache_key,
                     self.layer.layer_id,
+                    params,
                 ),
                 daemon=True,
             )
             thread.start()
 
-    def _fetch_and_set_thread(self, image, latlon, cache_key, layer_id):
+    def _fetch_and_set_thread(self, image, latlon, cache_key, layer_id, parameters):
 
         try:
             lat, lon = latlon
-            value_list = value_at(image, lat, lon, layer_id)
+            value_list = value_at(image, lat, lon, layer_id, parameters=parameters)
         except JobTimeoutError:
             value_list = ["⏱"]
         except Exception as ex:
