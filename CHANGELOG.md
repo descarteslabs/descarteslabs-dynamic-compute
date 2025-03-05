@@ -2,6 +2,10 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## v1.4.1 - 03/05/2025
+
+- Fixed a bug in computing AOIs that do not have `dc.parameters`.
+
 ## v1.4.0 - 03/04/2025
 
 ### Fixed
