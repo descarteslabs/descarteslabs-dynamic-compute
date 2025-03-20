@@ -2,11 +2,17 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
-## v1.4.2 - 03/05/2025
+## v1.4.3 - 03/20/2025
+
+### Changed
+
+- Updated the allowed versions of `numpy` in the client to be compatible with newer versions of `tensorflow` so that the latest `descarteslabs-dynamic-compute` package can be installed on workbench.
+
+## v1.4.2 - 03/17/2025
 
 ### Added
 
-- Added support for `descarteslabs` v4.0.0
+- Added support for descarteslabs v4.0.0, which involved upgrading a few packages and minor code changes to accommodate those upgrades.
 
 ## v1.4.1 - 03/05/2025
 

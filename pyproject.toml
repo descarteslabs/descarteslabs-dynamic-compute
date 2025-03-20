@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "descarteslabs-dynamic-compute"
-version = "1.4.2"
+version = "1.4.3"
 description = ""
 license = "Apache-2.0"
 authors = ["Descartes Labs"]
@@ -24,8 +24,8 @@ pyproj = [
 ]
 geojson = ">=2.5.0"
 numpy = [
-    {version = "<=1.24.2", python = "<3.11"},
-    {version = ">=1.26", python = ">=3.11"}
+    {version = "<=2.0.2", python = "<3.11"},
+    {version = "<3", python = ">=3.11"}
 ]
 pyzmq = [
     {version = "<=26.0.3", python = "<3.12"},
