@@ -127,7 +127,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
     >>> # ^ adjust scaling (this also updates the layer)
     """
 
-    attribution = traitlets.Unicode("Descartes Labs").tag(sync=True, o=True)
+    attribution = traitlets.Unicode("EarthDaily Analytics").tag(sync=True, o=True)
     min_zoom = traitlets.Int(5).tag(sync=True, o=True)
     url = traitlets.Unicode(read_only=True).tag(sync=True)
     layer_id = traitlets.Unicode(read_only=True).tag(sync=True)

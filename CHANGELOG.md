@@ -2,6 +2,12 @@
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [semantic versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+
+### Changed
+
+- Change the DynamicComputeLayer attribution from `Descartes Labs` to `EarthDaily Analytics`
+
 ## v1.4.3 - 03/20/2025
 
 ### Changed
