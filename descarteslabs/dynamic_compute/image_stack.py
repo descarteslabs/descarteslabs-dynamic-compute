@@ -174,6 +174,7 @@ class ImageStackSerializationModel(BaseSerializationModel):
     bands: Union[str, List[str]]
     start_datetime: Optional[str] = None
     end_datetime: Optional[str] = None
+    predicate_filter: Optional[str] = None
 
     @classmethod
     def from_json(cls, data: str) -> ImageStackSerializationModel:
@@ -227,6 +228,7 @@ class ImageStack(
         resampler: Optional[
             dl.catalog.ResampleAlgorithm
         ] = dl.catalog.ResampleAlgorithm.NEAR,
+        predicate_filter: Optional[str] = None,
     ):
         """
         Initialize a new instance of ImageStack. Users should rely on
@@ -278,6 +280,7 @@ class ImageStack(
         bands: Union[str, List[str]],
         start_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
         end_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
+        predicate_filter: dl.catalog.properties.OpExpression = None,
         **kwargs,
     ) -> ImageStack:
         """
@@ -293,6 +296,14 @@ class ImageStack(
             Start date for image stack
         end_datetime: Union[str, datetime.date, datetime.datetime]
             End date for image stack
+        predicate_filter: dl.catalog.properties.OpExpression
+            Optional kwarg that allows filtering of scenes prior to
+            creating the ImageStack. The benefit of using this over
+            the .filter() method is that it allows filtering of metadata
+            before an ImageCollection is created, which allows less data
+            to be requested from platform. The downside is this filter
+            cannot be changed without changing the ImageStack object.
+
 
         Returns
         -------
@@ -316,6 +327,29 @@ class ImageStack(
             ), f"Proxytypes for dates must be dc.Datetime, not {end_datetime.type}"
             end_datetime = end_datetime.name
 
+        if predicate_filter:
+            if hasattr(predicate_filter, "jsonapi_serialize"):
+                predicate_filter = json.dumps(
+                    predicate_filter.jsonapi_serialize(dl.catalog.Image)
+                )
+            elif isinstance(predicate_filter, str):
+                try:
+                    dl.core.common.property_filtering.Expression.parse(predicate_filter)
+                except json.JSONDecodeError:
+                    raise Exception(
+                        "Unrecognized filter. Please refer to filtering "
+                        "documentation: https://docs.descarteslabs.com/"
+                        "descarteslabs/utils/readme.html#module-descarteslabs"
+                        ".common.property_filtering.filtering"
+                    )
+            else:
+                raise Exception(
+                    "Unrecognized filter. Please refer to filtering "
+                    "documentation: https://docs.descarteslabs.com/"
+                    "descarteslabs/utils/readme.html#module-descarteslabs"
+                    ".common.property_filtering.filtering"
+                )
+
         formatted_bands = " ".join(format_bands(bands))
         # Create a keywords arg dict without resampling
         kwargs_no_resamp = deepcopy(kwargs)
@@ -325,6 +359,7 @@ class ImageStack(
             formatted_bands,
             start_datetime,
             end_datetime,
+            predicate_filter,
             **kwargs_no_resamp,
         )
 

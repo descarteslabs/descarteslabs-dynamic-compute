@@ -14,10 +14,7 @@ python = ">=3.9, <3.13"
 ipyleaflet = ">=0.15.0"
 shapely = ">2,<3"
 utm = "^0.7.0"
-pandas = [
-    {version = "<=2.0.3", python = "<3.12"},
-    {version = ">=2.2", python = ">=3.12"}
-]
+pandas = ">=2.2"
 pyproj = [
     {version = "<=3.4.1", python = "<3.12"},
     {version = ">=3.6.1", python = ">=3.12"}
@@ -38,6 +35,7 @@ imagecodecs = [
     {version = "<=2023.3.16", python = "<3.12"},
     {version = ">=2023.7.4", python = ">=3.12"}
 ]
+matplotlib = ">3.6"
 
 
 [build-system]

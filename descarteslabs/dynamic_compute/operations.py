@@ -585,10 +585,11 @@ def select_scenes(
     bands: str,
     start_datetime: str,
     end_datetime: str,
+    predicate_filter: str = None,
     pad: int = 0,
 ) -> Dict:
     """
-    Select, scenes based on date, from a product in the Descartes Labs catalog.
+    Select scenes based on date, from a product in the Descartes Labs catalog.
 
     Parameters
     ----------
@@ -612,6 +613,7 @@ def select_scenes(
         bands,
         start_datetime=start_datetime,
         end_datetime=end_datetime,
+        predicate_filter=predicate_filter,
         pad=pad,
     )
 
