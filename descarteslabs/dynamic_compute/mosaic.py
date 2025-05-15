@@ -4,6 +4,7 @@ import dataclasses
 import datetime
 import json
 import logging
+import warnings
 from copy import deepcopy
 from numbers import Number
 from typing import Dict, List, Optional, Tuple, Union
@@ -40,6 +41,7 @@ from .operations import (
     _resolution_graft_y,
     create_mosaic,
     format_bands,
+    from_image_ids,
     gradient_x,
     gradient_y,
     is_op,
@@ -101,6 +103,7 @@ class Mosaic(
         end_datetime: Optional[
             Union[str, datetime.date, datetime.datetime, Datetime]
         ] = None,
+        image_ids: Optional[List[str]] = None,
     ):
         """
         Initialize a new instance of Mosaic. Users should rely on
@@ -120,6 +123,17 @@ class Mosaic(
         end_datetime: Optional[Union[str, datetime.date, datetime.datetime, Datetime]]
             Optional final cutoff
         """
+
+        if product_id and image_ids:
+            warnings.warn(
+                "Both product_id and image_ids were provided, ignoring product_id"
+            )
+
+        if image_ids and (start_datetime or end_datetime):
+            warnings.warn(
+                "Both dates and image_ids were provided, ignoring start_datetime and end_datetime"
+            )
+
         set_cache_id(graft)
         super().__init__(graft)
         self.bands = bands
@@ -270,6 +284,33 @@ class Mosaic(
         graft = create_mosaic(product_id, bands, start_datetime, end_datetime, **kwargs)
 
         return cls(graft, bands, product_id, start_datetime, end_datetime)
+
+    @classmethod
+    def from_image_ids(
+        cls,
+        image_ids: List[str],
+        bands: Union[str, List[str]],
+        **kwargs,
+    ):
+        """
+        Create a new Mosaic object from a list of image IDs
+
+        Parameters
+        ----------
+        image_ids: list
+            List of image IDs for the images that will be mosaicked
+        bands: Union[str, List[str]]
+            A space-separated list of bands within the product, or a list of strings.
+
+        Returns
+        -------
+        m: Mosaic
+            New mosaic object.
+        """
+
+        formatted_bands = " ".join(format_bands(bands))
+        image_ids = json.dumps(image_ids)
+        return cls(from_image_ids(image_ids, formatted_bands))
 
     def pick_bands(self, bands: Union[str, List[str]]) -> Mosaic:
         """

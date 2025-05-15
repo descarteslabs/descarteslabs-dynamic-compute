@@ -8,6 +8,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Change the DynamicComputeLayer attribution from `Descartes Labs` to `EarthDaily Analytics`
 
+### Added
+
+- Added a `predicate_filter` keyword argument that allows the user to pass in a filter at the time of construction of an `ImageStack`, instead of filtering later, allowing for better perfomance and less data being pulled from platform.
+- Added a `sort_by` keyword argument that allows the user to pass in an argument for how to sort the data at the time of construction of an `ImageStack`, and an additional optional `ascending` keyword argument for how to sort the data.
+- Added a `.from_image_ids` to the `Mosaic` class, where `Mosaic` objects can now be created from a list of Image IDs
+
 ## v1.4.3 - 03/20/2025
 
 ### Changed

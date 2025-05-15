@@ -586,6 +586,8 @@ def select_scenes(
     start_datetime: str,
     end_datetime: str,
     predicate_filter: str = None,
+    sort_by: str = None,
+    ascending: bool = True,
     pad: int = 0,
 ) -> Dict:
     """
@@ -614,6 +616,8 @@ def select_scenes(
         start_datetime=start_datetime,
         end_datetime=end_datetime,
         predicate_filter=predicate_filter,
+        sort_by=sort_by,
+        ascending=ascending,
         pad=pad,
     )
 
@@ -649,6 +653,18 @@ def stack_scenes(
     """
     return graft_client.apply_graft(
         "stack_scenes", scenes_graft, bands, pad=pad, resampler=resampler
+    )
+
+
+def from_image_ids(
+    ids: List[str],
+    bands: str,
+    pad: int = 0,
+    resampler: dl.catalog.ResampleAlgorithm = dl.catalog.ResampleAlgorithm.NEAR,
+) -> Dict:
+
+    return graft_client.apply_graft(
+        "from_image_ids", ids, bands, pad=pad, resampler=resampler
     )
 
 

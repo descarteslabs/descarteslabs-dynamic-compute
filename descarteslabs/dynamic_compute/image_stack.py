@@ -175,6 +175,8 @@ class ImageStackSerializationModel(BaseSerializationModel):
     start_datetime: Optional[str] = None
     end_datetime: Optional[str] = None
     predicate_filter: Optional[str] = None
+    sort_by: Optional[str] = None
+    ascending: Optional[bool] = None
 
     @classmethod
     def from_json(cls, data: str) -> ImageStackSerializationModel:
@@ -229,6 +231,8 @@ class ImageStack(
             dl.catalog.ResampleAlgorithm
         ] = dl.catalog.ResampleAlgorithm.NEAR,
         predicate_filter: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        ascending: Optional[bool] = None,
     ):
         """
         Initialize a new instance of ImageStack. Users should rely on
@@ -281,6 +285,8 @@ class ImageStack(
         start_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
         end_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
         predicate_filter: dl.catalog.properties.OpExpression = None,
+        sort_by: str = None,
+        ascending: bool = True,
         **kwargs,
     ) -> ImageStack:
         """
@@ -303,7 +309,13 @@ class ImageStack(
             before an ImageCollection is created, which allows less data
             to be requested from platform. The downside is this filter
             cannot be changed without changing the ImageStack object.
-
+        sort_by: str
+            Optional kwarg that allows for sorting of images. Follows the
+            same logic as sorting for catalog. See for more details:
+            https://docs.descarteslabs.com/descarteslabs/catalog/docs/image.html
+        ascending: bool
+            Optional kwarg that is used in sorting. Defaults to True. If sort_by
+            is not provided, this kwarg will be ignored.
 
         Returns
         -------
@@ -360,6 +372,8 @@ class ImageStack(
             start_datetime,
             end_datetime,
             predicate_filter,
+            sort_by,
+            ascending,
             **kwargs_no_resamp,
         )
 
