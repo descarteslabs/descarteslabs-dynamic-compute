@@ -10,7 +10,7 @@ from io import StringIO
 from numbers import Number
 from typing import Dict, List, Type, Union
 
-import descarteslabs as dl
+import earthdaily.earthone as eo
 import numpy as np
 
 from .graft.client import client as graft_client
@@ -257,7 +257,7 @@ class ComputeMap(dict, ABC):
         return new_compute_map
 
     def compute(
-        self, aoi: dl.geo.AOI, **kwargs
+        self, aoi: eo.geo.AOI, **kwargs
     ) -> Union[
         np.ma.MaskedArray,  # We're returning just data
         List,  # We're returning just properties, and they are a list

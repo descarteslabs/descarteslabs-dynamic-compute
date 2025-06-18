@@ -6,7 +6,7 @@ from collections.abc import Generator
 from copy import deepcopy
 from typing import Any, Callable, Hashable, Union
 
-from descarteslabs.geo import AOI
+from earthdaily.earthone.geo import AOI
 from tqdm import tqdm
 
 from .compute_map import ComputeMap

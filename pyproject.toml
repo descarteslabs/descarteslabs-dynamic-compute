@@ -10,7 +10,7 @@ packages = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.13"
+python = ">=3.10, <3.13"
 ipyleaflet = ">=0.15.0"
 shapely = ">2,<3"
 utm = "^0.7.0"
@@ -36,6 +36,7 @@ imagecodecs = [
     {version = ">=2023.7.4", python = ">=3.12"}
 ]
 matplotlib = ">3.6"
+earthdaily-earthone = "^5.0.0b1"
 
 
 [build-system]

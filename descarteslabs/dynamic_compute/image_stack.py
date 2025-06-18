@@ -7,7 +7,7 @@ from copy import deepcopy
 from numbers import Number
 from typing import Dict, Hashable, List, Optional, Tuple, Union
 
-import descarteslabs as dl
+import earthdaily.earthone as eo
 
 from .compute_map import (
     AddMixin,
@@ -228,8 +228,8 @@ class ImageStack(
         ] = None,
         pad: Optional[int] = 0,
         resampler: Optional[
-            dl.catalog.ResampleAlgorithm
-        ] = dl.catalog.ResampleAlgorithm.NEAR,
+            eo.catalog.ResampleAlgorithm
+        ] = eo.catalog.ResampleAlgorithm.NEAR,
         predicate_filter: Optional[str] = None,
         sort_by: Optional[str] = None,
         ascending: Optional[bool] = None,
@@ -260,7 +260,7 @@ class ImageStack(
 
         assert isinstance(pad, int)
         assert pad >= 0
-        assert resampler in dl.catalog.ResampleAlgorithm
+        assert resampler in eo.catalog.ResampleAlgorithm
 
         set_cache_id(full_graft)
         super().__init__(full_graft)
@@ -284,7 +284,7 @@ class ImageStack(
         bands: Union[str, List[str]],
         start_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
         end_datetime: Union[str, datetime.date, datetime.datetime, Datetime],
-        predicate_filter: dl.catalog.properties.OpExpression = None,
+        predicate_filter: eo.catalog.properties.OpExpression = None,
         sort_by: str = None,
         ascending: bool = True,
         **kwargs,
@@ -302,7 +302,7 @@ class ImageStack(
             Start date for image stack
         end_datetime: Union[str, datetime.date, datetime.datetime]
             End date for image stack
-        predicate_filter: dl.catalog.properties.OpExpression
+        predicate_filter: eo.catalog.properties.OpExpression
             Optional kwarg that allows filtering of scenes prior to
             creating the ImageStack. The benefit of using this over
             the .filter() method is that it allows filtering of metadata
@@ -342,11 +342,11 @@ class ImageStack(
         if predicate_filter:
             if hasattr(predicate_filter, "jsonapi_serialize"):
                 predicate_filter = json.dumps(
-                    predicate_filter.jsonapi_serialize(dl.catalog.Image)
+                    predicate_filter.jsonapi_serialize(eo.catalog.Image)
                 )
             elif isinstance(predicate_filter, str):
                 try:
-                    dl.core.common.property_filtering.Expression.parse(predicate_filter)
+                    eo.core.common.property_filtering.Expression.parse(predicate_filter)
                 except json.JSONDecodeError:
                     raise Exception(
                         "Unrecognized filter. Please refer to filtering "
@@ -401,13 +401,13 @@ class ImageStack(
         """
         return ImageStack(filter_by_id(dict(self), json.dumps(list(id_list))))
 
-    def filter(self, pred: dl.catalog.properties.OpExpression) -> ImageStack:
+    def filter(self, pred: eo.catalog.properties.OpExpression) -> ImageStack:
         """
         Filter an image stack to based on image properties.
 
         Parameters
         ----------
-        pred: dl.catalog.properties.OpExpression
+        pred: eo.catalog.properties.OpExpression
             Predicate for image selection
 
         Returns
@@ -417,7 +417,7 @@ class ImageStack(
         """
 
         try:
-            encoded_func = json.dumps(pred.jsonapi_serialize(dl.catalog.Image))
+            encoded_func = json.dumps(pred.jsonapi_serialize(eo.catalog.Image))
         except Exception:
             encoded_func = encode_function(pred)
 
@@ -484,13 +484,13 @@ class ImageStack(
             product_id=self.product_id,
         )
 
-    def update_resampler(self, resampler: dl.catalog.ResampleAlgorithm) -> ImageStack:
+    def update_resampler(self, resampler: eo.catalog.ResampleAlgorithm) -> ImageStack:
         """
         Create a new mosaic object with an updated resampler
 
         Parameters
         ----------
-        resampler: dl.catalog.ResampleAlgorithm
+        resampler: eo.catalog.ResampleAlgorithm
             New resampler algorithm
 
         Returns
@@ -498,7 +498,7 @@ class ImageStack(
         updated_mosaic: ImageStack
             Mosaic with updated resampling
         """
-        assert resampler in dl.catalog.ResampleAlgorithm
+        assert resampler in eo.catalog.ResampleAlgorithm
 
         # Replace the resampler for any stack_scenes nodes
 

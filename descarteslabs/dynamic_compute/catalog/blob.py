@@ -1,8 +1,8 @@
-"""Funtionality around DL catalog blobs"""
+"""Funtionality around EO catalog blobs"""
 
 from typing import Dict, List, Optional, Set, Union
 
-import descarteslabs as dl
+import earthdaily.earthone as eo
 
 from ..compute_map import ComputeMap
 from ..pyversions import PythonVersion
@@ -12,8 +12,8 @@ def get_blob_or_fail(
     id: Optional[str] = None,
     name: Optional[str] = None,
     namespace: Optional[str] = None,
-) -> dl.catalog.Blob:
-    """Gets a blob from dl catalog or fails if one isn't found. One of either
+) -> eo.catalog.Blob:
+    """Gets a blob from eo catalog or fails if one isn't found. One of either
     id or name must be specified.
 
     Parameters
@@ -28,7 +28,7 @@ def get_blob_or_fail(
 
     Returns
     -------
-    dl.catalog.Blob
+    eo.catalog.Blob
         The catalog blob object
     """
 
@@ -36,14 +36,14 @@ def get_blob_or_fail(
         err_msg = "Must specify exactly one of id or name parameters"
         raise ValueError(err_msg)
 
-    blob = dl.catalog.Blob.get(id=id, name=name, namespace=namespace)
+    blob = eo.catalog.Blob.get(id=id, name=name, namespace=namespace)
 
     if blob is None:
         err_msg = (
             f"Blob {id or name} either does not exist "
             "or you do not have access to it"
         )
-        raise dl.exceptions.NotFoundError(err_msg)
+        raise eo.exceptions.NotFoundError(err_msg)
 
     return blob
 
@@ -56,9 +56,9 @@ def create_blob_and_upload_data(
     extra_properties: Optional[Dict[str, Union[str, int, float]]] = None,
     readers: Optional[List[str]] = None,
     writers: Optional[List[str]] = None,
-    storage_type: Optional[Union[str, dl.catalog.StorageType]] = None,
+    storage_type: Optional[Union[str, eo.catalog.StorageType]] = None,
     tags: Optional[List[str]] = None,
-) -> dl.catalog.Blob:
+) -> eo.catalog.Blob:
     """Creates a new blob and uploads data to it
 
     Parameters
@@ -77,25 +77,25 @@ def create_blob_and_upload_data(
         A list of emails, orgs, or users to give read access, by default None
     writers : Optional[list[str]], optional
         A list of emails, orgs, or users to give write access, by default None
-    storage_type : Optional[Union[str, dl.catalog.StorageType]]
+    storage_type : Optional[Union[str, eo.catalog.StorageType]]
         The storage type of this object, defaults to "data"
     tags: Optional[List[str]], optional
         A list of tags to assign to this blob for easy filtering later
 
     Returns
     -------
-    dl.catalog.Blob
+    eo.catalog.Blob
         The updated/created blob
     """
 
-    blob = dl.catalog.Blob(
+    blob = eo.catalog.Blob(
         name=name,
         namespace=namespace,
         description=description,
         extra_properties=extra_properties,
         readers=readers,
         writers=writers,
-        storage_type=storage_type or dl.catalog.StorageType.DATA,
+        storage_type=storage_type or eo.catalog.StorageType.DATA,
         tags=tags,
     )
 
@@ -104,16 +104,16 @@ def create_blob_and_upload_data(
     return blob
 
 
-def find_blobs() -> dl.catalog.BlobSearch:
+def find_blobs() -> eo.catalog.BlobSearch:
     """Searches for saved dynamic compute blobs and returns a BlobSearch object
 
     Returns
     -------
-    dl.catalog.BlobSearch
+    eo.catalog.BlobSearch
     """
 
-    return dl.catalog.Blob.search().filter(
-        dl.catalog.properties.storage_type == "dyncomp"
+    return eo.catalog.Blob.search().filter(
+        eo.catalog.properties.storage_type == "dyncomp"
     )
 
 
@@ -171,7 +171,7 @@ def share_blob(
         read access, by default False
     """
 
-    def _update_blob_principals(blob: dl.catalog.Blob, attr: str, principals: Set[str]):
+    def _update_blob_principals(blob: eo.catalog.Blob, attr: str, principals: Set[str]):
         for principal in principals:
             if principal not in getattr(blob, attr):
                 getattr(blob, attr).append(principal)
@@ -236,7 +236,7 @@ def save_to_blob(
         The id of the blob created
     """
 
-    default_namespace = dl.catalog.Blob.namespace_id(None)
+    default_namespace = eo.catalog.Blob.namespace_id(None)
     if namespace:
         default_namespace += f":{namespace}"
 
@@ -254,7 +254,7 @@ def save_to_blob(
         extra_properties=extra_properties,
         readers=readers,
         writers=writers,
-        storage_type=dl.catalog.StorageType.DYNCOMP,
+        storage_type=eo.catalog.StorageType.DYNCOMP,
         tags=tags,
     )
 

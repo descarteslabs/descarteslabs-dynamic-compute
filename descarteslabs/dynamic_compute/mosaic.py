@@ -9,7 +9,7 @@ from copy import deepcopy
 from numbers import Number
 from typing import Dict, List, Optional, Tuple, Union
 
-import descarteslabs as dl
+import earthdaily.earthone as eo
 import ipyleaflet
 
 from .compute_map import (
@@ -576,13 +576,13 @@ class Mosaic(
             end_datetime=self.end_datetime,
         ).json()
 
-    def update_resampler(self, resampler: dl.catalog.ResampleAlgorithm) -> Mosaic:
+    def update_resampler(self, resampler: eo.catalog.ResampleAlgorithm) -> Mosaic:
         """
         Create a new mosaic object with an updated resampler
 
         Parameters
         ----------
-        resampler: dl.catalog.ResampleAlgorithm
+        resampler: eo.catalog.ResampleAlgorithm
             New resampler algorithm
 
         Returns
@@ -590,7 +590,7 @@ class Mosaic(
         updated_mosaic: Mosaic
             Mosaic with updated resampling
         """
-        assert resampler in dl.catalog.ResampleAlgorithm
+        assert resampler in eo.catalog.ResampleAlgorithm
 
         # Replace the resampler for any mosaic nodes.
         intermediate_graft = update_kwarg(dict(self), "mosaic", "resampler", resampler)

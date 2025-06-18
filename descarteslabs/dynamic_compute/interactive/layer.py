@@ -9,7 +9,8 @@ from datetime import date, datetime
 from importlib.metadata import version
 from urllib.parse import urlencode
 
-import descarteslabs as dl
+import descarteslabs.dynamic_compute as dc
+import earthdaily.earthone as eo
 import ipyleaflet
 import ipywidgets as widgets
 import matplotlib as mpl
@@ -190,9 +191,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             )
 
         if alpha is not None:
-            assert (
-                type(alpha) == dl.dynamic_compute.mosaic.Mosaic
-            ), "Alpha must be a Mosaic layer"
+            assert type(alpha) == dc.mosaic.Mosaic, "Alpha must be a Mosaic layer"
 
         if parameter_overrides is None:
             parameter_overrides = {}
@@ -327,7 +326,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
         # Create a layer from the graft
         response = requests.post(
             f"{API_HOST}/layers/",
-            headers={"Authorization": dl.auth.Auth.get_default_auth().token},
+            headers={"Authorization": eo.auth.Auth.get_default_auth().token},
             json={
                 "graft": self.imagery,
                 "python_version": _python_major_minor_version,
@@ -349,7 +348,7 @@ class DynamicComputeLayer(ipyleaflet.TileLayer):
             # Create an alpha layer from the graft
             alpha_response = requests.post(
                 f"{API_HOST}/layers/",
-                headers={"Authorization": dl.auth.Auth.get_default_auth().token},
+                headers={"Authorization": eo.auth.Auth.get_default_auth().token},
                 json={
                     "graft": self.alpha,
                     "python_version": _python_major_minor_version,

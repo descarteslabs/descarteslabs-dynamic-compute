@@ -15,7 +15,7 @@ from .utils import tuple_move, wrap_num
 EARTH_EQUATORIAL_RADIUS_WGS84_M = 6378137.0
 
 app_layout = widgets.Layout(height="100%", padding="0 0 8px 0")
-import descarteslabs as dl
+import earthdaily.earthone as eo
 
 
 class MapController(widgets.HBox):
@@ -441,7 +441,7 @@ class Map(ipyleaflet.Map):
         (left, top), (right, bottom) = self.pixel_bounds
         return (math.ceil(bottom - top), math.ceil(right - left))
 
-    def geocontext(self, resolution=None, shape=None, crs="EPSG:3857") -> dl.geo.AOI:
+    def geocontext(self, resolution=None, shape=None, crs="EPSG:3857") -> eo.geo.AOI:
         """
         A Scenes :class:`~descarteslabs.geo.AOI` representing
         the current view area and resolution of the map. The ``bounds`` of the
@@ -508,7 +508,7 @@ class Map(ipyleaflet.Map):
 
             crs = "+proj=utm +zone={} +datum=WGS84 +units=m +no_defs ".format(zone)
 
-        return dl.geo.AOI(
+        return eo.geo.AOI(
             bounds=bounds,
             crs=crs,
             bounds_crs="EPSG:4326",
@@ -525,8 +525,7 @@ class Map(ipyleaflet.Map):
         -------
             list of coordinates [west, south, east, north] representing a bounding box
         """
-        dl
-        # TODO: This isn't quite right for envelopes that intersect the antimeridian - the dl.geo.AOI call will still
+        # TODO: This isn't quite right for envelopes that intersect the antimeridian - the eo.geo.AOI call will still
         # error on those because there's not a way to make a single bounding box rectangle that crosses the
         # antimeridian (it really should be two bboxes). (explanation https://www.rfc-editor.org/rfc/rfc7946#section-5.2).
 

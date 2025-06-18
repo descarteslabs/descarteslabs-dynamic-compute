@@ -1,6 +1,6 @@
 from typing import Dict, Union
 
-import descarteslabs as dl
+import earthdaily.earthone as eo
 import shapely  # type: ignore
 import utm  # type: ignore
 from pyproj.crs import CRS
@@ -18,7 +18,7 @@ def create_aoi(geometry: Dict, resolution: Union[float, int]):
 
     Returns
     -------
-    aoi : dl.geo.AOI
+    aoi : eo.geo.AOI
         AOI object.
     """
     # Get the appropriate UTM zone for this polygon
@@ -30,7 +30,7 @@ def create_aoi(geometry: Dict, resolution: Union[float, int]):
     # Create a CRS for this UTM zone
     wkt = CRS.from_dict({"proj": "utm", "zone": zone_number, "south": south}).to_wkt()
 
-    aoi = dl.geo.AOI(
+    aoi = eo.geo.AOI(
         geometry=geometry,
         crs=wkt,
         resolution=resolution,
