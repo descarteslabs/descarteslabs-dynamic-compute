@@ -30,7 +30,7 @@ from .compute_map import (
     sqrt,
 )
 from .datetime_utils import normalize_datetime_or_none
-from .dl_utils import get_product_or_fail
+from .eo_utils import get_product_or_fail
 from .interactive.tile_url import validate_scales
 from .operations import (
     _band_op,

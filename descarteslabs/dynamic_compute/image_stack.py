@@ -24,7 +24,7 @@ from .compute_map import (
     as_compute_map,
 )
 from .datetime_utils import normalize_datetime
-from .dl_utils import get_product_or_fail
+from .eo_utils import get_product_or_fail
 from .mosaic import Mosaic
 from .operations import (
     _band_op,
@@ -254,7 +254,7 @@ class ImageStack(
             Optional final cutoff for an ImageStack
         pad: Optional[int]
             Optional padding argument.
-        resampler: Optional[descarteslabs.catalog.ResampleAlgorithm]
+        resampler: Optional[earthdaily.earthone.catalog.ResampleAlgorithm]
             Optional resampling algorithm to use, defaults to descartslabs.catalog.ResampleAlgorithm.NEAR
         """
 
@@ -312,7 +312,7 @@ class ImageStack(
         sort_by: str
             Optional kwarg that allows for sorting of images. Follows the
             same logic as sorting for catalog. See for more details:
-            https://docs.descarteslabs.com/descarteslabs/catalog/docs/image.html
+            https://docs.earthdaily.earthone.com/earthdaily.earthone/catalog/docs/image.html
         ascending: bool
             Optional kwarg that is used in sorting. Defaults to True. If sort_by
             is not provided, this kwarg will be ignored.
@@ -350,15 +350,15 @@ class ImageStack(
                 except json.JSONDecodeError:
                     raise Exception(
                         "Unrecognized filter. Please refer to filtering "
-                        "documentation: https://docs.descarteslabs.com/"
-                        "descarteslabs/utils/readme.html#module-descarteslabs"
+                        "documentation: https://docs.earthdaily.earthone.com/"
+                        "earthdaily.earthone/utils/readme.html#module-earthdaily.earthone"
                         ".common.property_filtering.filtering"
                     )
             else:
                 raise Exception(
                     "Unrecognized filter. Please refer to filtering "
-                    "documentation: https://docs.descarteslabs.com/"
-                    "descarteslabs/utils/readme.html#module-descarteslabs"
+                    "documentation: https://docs.earthdaily.earthone.com/"
+                    "earthdaily.earthone/utils/readme.html#module-earthdaily.earthone"
                     ".common.property_filtering.filtering"
                 )
 

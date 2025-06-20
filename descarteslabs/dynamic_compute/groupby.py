@@ -35,7 +35,7 @@ class ImageStackGroups:
 
         Parameters
         ----------
-            aoi (AOI): descarteslabs.geo.GeoContext
+            aoi (AOI): earthdaily.earthone.geo.GeoContext
         GeoContext for which to compute evaluate these groups
 
         Returns
@@ -76,7 +76,7 @@ class ImageStackGroups:
 
         Parameters
         ----------
-            aoi (AOI): descarteslabs.geo.GeoContext
+            aoi (AOI): earthdaily.earthone.geo.GeoContext
         GeoContext for which to compute evaluate these groups
 
         Returns
@@ -101,7 +101,7 @@ class ImageStackGroups:
 
         Parameters
         ----------
-            aoi (AOI): descarteslabs.geo.GeoContext
+            aoi (AOI): earthdaily.earthone.geo.GeoContext
         GeoContext for which to compute evaluate these groups
 
         Returns
@@ -325,7 +325,7 @@ def image_stack_groupby(
 
     Example
     -------
-    >>> import descarteslabs.dynamic_compute as dc # doctest: +SKIP
+    >>> import earthdaily.earthone.dynamic_compute as dc # doctest: +SKIP
     >>> m = dc.map # doctest: +SKIP
     >>> m # doctest: +SKIP
     >>> sigma0_vv = dc.ImageStack.from_product_bands( # doctest: +SKIP

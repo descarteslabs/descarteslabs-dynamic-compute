@@ -269,7 +269,7 @@ class ComputeMap(dict, ABC):
 
         Parameters
         ----------
-        aoi : descarteslabs.geo.GeoContext
+        aoi : earthdaily.earthone.geo.GeoContext
             GeoContext for which to compute evaluate this ComputeMap
 
         Returns
