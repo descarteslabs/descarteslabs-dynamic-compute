@@ -8,9 +8,9 @@
 
 _Dynamic-Compute_ is a **map computation engine**. It enables users to **dynamically** generate maps from a **composable** set of Python operations. Together, these properties enable data scientists in the building of complex GIS applications.
 
-Formal documentation for this library is available under the [Descartes Labs API Documentation](https://docs.descarteslabs.com/api.html).
+Formal documentation for this library is available under the [EarthOne API Documentation](https://docs.earthone.earthdaily.com/api.html).
 
-Example notebooks to get started can be found under [Descartes Labs Guides](https://docs.descarteslabs.com/guide.html). Below is a very simple example to get you started using the map:
+Example notebooks to get started can be found under [EarthOne Guides](https://docs.earthone.earthdaily.com/guide.html). Below is a very simple example to get you started using the map:
 
 First, we import `descarteslabs.dynamic_compute` and instantiate the map, then set the zoom level and lat, long of the center:
 
@@ -23,7 +23,7 @@ m.center = (43.4783, -110.7506)
 m
 ```
 
-Next, we can create a layer from a Descartes Labs Catalog product by executing the following Python code:
+Next, we can create a layer from a EarthOne Catalog product by executing the following Python code:
 
 ```python
 spot_rgb = (
