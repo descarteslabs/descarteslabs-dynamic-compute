@@ -70,6 +70,16 @@ def validate_scales(scales):
                     "Scaling {}: expected a 2-item list or tuple for the scaling, "
                     "but length was {}".format(i, len(scaling))
                 )
+
+            # sometimes these are passed in as numpy float, int, etc.
+            # so we don't have to deal with all of those potential instances,
+            # we convert those to their native python equivalent classes
+            sc0, sc1 = scaling
+            if hasattr(sc0, "dtype"):
+                scaling[0] = sc0.item()
+            if hasattr(sc1, "dtype"):
+                scaling[1] = sc1.item()
+
             if not all(isinstance(x, (int, float, type(None))) for x in scaling):
                 raise TypeError(
                     "Scaling {}: items in scaling must be numbers or None; "
